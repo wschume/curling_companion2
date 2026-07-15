@@ -1,0 +1,39 @@
+name: Flutter web CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: [self-hosted, linux, x64]
+    container: ghcr.io/cirruslabs/flutter:stable
+    steps:
+      - uses: actions/checkout@v4
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web
+          path: build/web
+          retention-days: 1
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: [self-hosted, linux, x64]
+    container: node:22-bookworm
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: flutter-web
+          path: build/web
+      - run: npm install --global firebase-tools
+      - run: firebase deploy --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN" --only hosting,firestore
