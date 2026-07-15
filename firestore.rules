@@ -9,8 +9,13 @@ service cloud.firestore {
 
     match /tournaments/{tournamentId} {
       allow read: if true;
-      allow create: if isSignedIn() && isOrganizer();
-      allow update, delete: if isSignedIn() && (resource.data.organizerId == request.auth.uid || isOrganizer());
+      allow create: if isSignedIn() && request.resource.data.organizerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.organizerId == request.auth.uid
+        && request.resource.data.organizerId == resource.data.organizerId;
+      allow delete: if isSignedIn()
+        && resource.data.organizerId == request.auth.uid
+        && resource.data.endDate > request.time;
     }
 
     match /playerAvailability/{playerId} {

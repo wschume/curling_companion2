@@ -3,8 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:curling_companion/models/models.dart';
 import 'package:curling_companion/services/services.dart';
+import 'package:curling_companion/main.dart';
 
 void main() {
+  test(
+    'local authentication provides an identity for tournament ownership',
+    () async {
+      final auth = LocalAuthService();
+      final controller = AuthController(auth);
+      await auth.signIn('owner@example.com', 'password');
+      expect(controller.isSignedIn, isTrue);
+      expect(controller.userId, 'owner@example.com');
+      controller.dispose();
+    },
+  );
+
   test('marketplace repository reads and writes mapped documents', () async {
     final firestore = FakeFirebaseFirestore();
     final repository = FirestoreMarketplaceRepository(firestore);
@@ -34,4 +47,39 @@ void main() {
       isTrue,
     );
   });
+
+  test(
+    'tournament repository persists the full tournament details and deletes',
+    () async {
+      final firestore = FakeFirebaseFirestore();
+      final repository = FirestoreTournamentRepository(firestore);
+      final tournament = Tournament(
+        id: 'tournament-1',
+        name: 'Test Bonspiel',
+        startDate: DateTime(2030, 1, 10),
+        endDate: DateTime(2030, 1, 12),
+        signupDeadline: DateTime(2029, 12, 20),
+        club: 'Test Curling Club',
+        city: 'Oslo',
+        country: 'Norway',
+        entryFee: 250,
+        maxNumberOfTeams: 16,
+        websiteUrl: 'https://example.com',
+        contactInformation: 'test@example.com',
+        organizerId: 'user-1',
+      );
+
+      await repository.save(tournament);
+      final tournaments = await repository.watchTournaments().first;
+      expect(tournaments.single.name, 'Test Bonspiel');
+      expect(tournaments.single.maxNumberOfTeams, 16);
+      expect(
+        tournaments.single.signupDeadline!.toLocal(),
+        DateTime(2029, 12, 20),
+      );
+
+      await repository.delete(tournament.id);
+      expect((await repository.watchTournaments().first), isEmpty);
+    },
+  );
 }

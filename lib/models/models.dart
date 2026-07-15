@@ -2,9 +2,6 @@ import 'package:dart_mappable/dart_mappable.dart';
 
 part 'models.mapper.dart';
 
-@MappableEnum()
-enum TournamentStatus { upcoming, past }
-
 @MappableClass()
 class MarketplaceListing with MarketplaceListingMappable {
   const MarketplaceListing({
@@ -27,17 +24,33 @@ class Tournament with TournamentMappable {
   const Tournament({
     required this.id,
     required this.name,
-    required this.location,
-    required this.date,
-    required this.status,
+    required this.startDate,
+    required this.endDate,
+    required this.city,
+    this.signupDeadline,
+    this.club,
+    this.country,
+    this.entryFee,
+    this.currency,
+    this.maxNumberOfTeams,
+    this.websiteUrl,
+    this.contactInformation,
     required this.organizerId,
   });
 
   final String id;
   final String name;
-  final String location;
-  final DateTime date;
-  final TournamentStatus status;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String city;
+  final DateTime? signupDeadline;
+  final String? club;
+  final String? country;
+  final double? entryFee;
+  final String? currency;
+  final int? maxNumberOfTeams;
+  final String? websiteUrl;
+  final String? contactInformation;
   final String organizerId;
 }
 

@@ -8,6 +8,7 @@ import '../models/models.dart';
 abstract interface class AuthService {
   Stream<String?> get authStateChanges;
   String? get currentEmail;
+  String? get currentUserId;
   Future<void> signIn(String email, String password);
   Future<void> register(String email, String password);
   Future<void> signOut();
@@ -23,6 +24,9 @@ class FirebaseAuthService implements AuthService {
 
   @override
   String? get currentEmail => _auth.currentUser?.email;
+
+  @override
+  String? get currentUserId => _auth.currentUser?.uid;
 
   @override
   Future<void> signIn(String email, String password) =>
@@ -45,6 +49,9 @@ class LocalAuthService implements AuthService {
 
   @override
   String? get currentEmail => _email;
+
+  @override
+  String? get currentUserId => _email;
 
   @override
   Future<void> signIn(String email, String password) async {
@@ -71,6 +78,7 @@ abstract interface class MarketplaceRepository {
 abstract interface class TournamentRepository {
   Stream<List<Tournament>> watchTournaments();
   Future<void> save(Tournament tournament);
+  Future<void> delete(String tournamentId);
 }
 
 abstract interface class PlayerRepository {
@@ -118,6 +126,10 @@ class FirestoreTournamentRepository implements TournamentRepository {
       .collection('tournaments')
       .doc(tournament.id)
       .set(tournament.toMap());
+
+  @override
+  Future<void> delete(String tournamentId) =>
+      _firestore.collection('tournaments').doc(tournamentId).delete();
 }
 
 class FirestorePlayerRepository implements PlayerRepository {
@@ -171,17 +183,33 @@ class MemoryTournamentRepository implements TournamentRepository {
     Tournament(
       id: 'event-1',
       name: 'Berlin Ice Cup',
-      location: 'Berlin',
-      date: DateTime.now().add(const Duration(days: 30)),
-      status: TournamentStatus.upcoming,
+      startDate: DateTime.now().add(const Duration(days: 30)),
+      endDate: DateTime.now().add(const Duration(days: 32)),
+      signupDeadline: DateTime.now().add(const Duration(days: 20)),
+      club: 'Berlin Curling Club',
+      city: 'Berlin',
+      country: 'Germany',
+      entryFee: 180,
+      currency: 'EUR',
+      maxNumberOfTeams: 32,
+      websiteUrl: 'https://example.com/berlin-ice-cup',
+      contactInformation: 'events@example.com',
       organizerId: 'demo',
     ),
     Tournament(
       id: 'event-2',
       name: 'Alpine Bonspiel',
-      location: 'Innsbruck',
-      date: DateTime.now().subtract(const Duration(days: 50)),
-      status: TournamentStatus.past,
+      startDate: DateTime.now().subtract(const Duration(days: 52)),
+      endDate: DateTime.now().subtract(const Duration(days: 50)),
+      signupDeadline: DateTime.now().subtract(const Duration(days: 62)),
+      club: 'Innsbruck Curling Club',
+      city: 'Innsbruck',
+      country: 'Austria',
+      entryFee: 160,
+      currency: 'EUR',
+      maxNumberOfTeams: 24,
+      websiteUrl: 'https://example.com/alpine-bonspiel',
+      contactInformation: 'club@example.com',
       organizerId: 'demo',
     ),
   ];
@@ -189,7 +217,19 @@ class MemoryTournamentRepository implements TournamentRepository {
   Stream<List<Tournament>> watchTournaments() =>
       Stream.value(List.unmodifiable(_items));
   @override
-  Future<void> save(Tournament tournament) async => _items.add(tournament);
+  Future<void> save(Tournament tournament) async {
+    final index = _items.indexWhere((item) => item.id == tournament.id);
+    if (index == -1) {
+      _items.add(tournament);
+    } else {
+      _items[index] = tournament;
+    }
+  }
+
+  @override
+  Future<void> delete(String tournamentId) async {
+    _items.removeWhere((item) => item.id == tournamentId);
+  }
 }
 
 class MemoryPlayerRepository implements PlayerRepository {

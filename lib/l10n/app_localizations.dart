@@ -110,6 +110,252 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get home;
 
+  /// No description provided for @name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get name;
+
+  /// No description provided for @location.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get location;
+
+  /// No description provided for @currency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get currency;
+
+  /// No description provided for @contactHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address or telephone number'**
+  String get contactHint;
+
+  /// No description provided for @invalidContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address or telephone number.'**
+  String get invalidContact;
+
+  /// No description provided for @invalidDateOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Dates must follow signup deadline < start date < end date.'**
+  String get invalidDateOrder;
+
+  /// No description provided for @durationTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'A tournament may last at most 5 days.'**
+  String get durationTooLong;
+
+  /// No description provided for @showPastTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'Show past tournaments'**
+  String get showPastTournaments;
+
+  /// No description provided for @hidePastTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide past tournaments'**
+  String get hidePastTournaments;
+
+  /// No description provided for @myTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'My tournaments'**
+  String get myTournaments;
+
+  /// No description provided for @allTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'All tournaments'**
+  String get allTournaments;
+
+  /// No description provided for @futureTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'Future tournaments'**
+  String get futureTournaments;
+
+  /// No description provided for @pastTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'Past tournaments'**
+  String get pastTournaments;
+
+  /// No description provided for @startDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get startDate;
+
+  /// No description provided for @endDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End date'**
+  String get endDate;
+
+  /// No description provided for @signupDeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Signup deadline'**
+  String get signupDeadline;
+
+  /// No description provided for @club.
+  ///
+  /// In en, this message translates to:
+  /// **'Club'**
+  String get club;
+
+  /// No description provided for @city.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get city;
+
+  /// No description provided for @country.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get country;
+
+  /// No description provided for @entryFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry fee'**
+  String get entryFee;
+
+  /// No description provided for @maxTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'Max teams'**
+  String get maxTeams;
+
+  /// No description provided for @website.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get website;
+
+  /// No description provided for @contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contact;
+
+  /// No description provided for @filters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filters;
+
+  /// No description provided for @filterByName.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by name'**
+  String get filterByName;
+
+  /// No description provided for @filterByLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by location'**
+  String get filterByLocation;
+
+  /// No description provided for @filterStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter start date'**
+  String get filterStartDate;
+
+  /// No description provided for @filterEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter end date'**
+  String get filterEndDate;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get clearFilters;
+
+  /// No description provided for @createTournament.
+  ///
+  /// In en, this message translates to:
+  /// **'Create tournament'**
+  String get createTournament;
+
+  /// No description provided for @editTournament.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit tournament'**
+  String get editTournament;
+
+  /// No description provided for @deleteTournament.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tournament'**
+  String get deleteTournament;
+
+  /// No description provided for @confirmDeleteTournament.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this tournament?'**
+  String get confirmDeleteTournament;
+
+  /// No description provided for @confirmDeleteTournamentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get confirmDeleteTournamentMessage;
+
+  /// No description provided for @saveTournament.
+  ///
+  /// In en, this message translates to:
+  /// **'Save tournament'**
+  String get saveTournament;
+
+  /// No description provided for @tournamentSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Tournament saved.'**
+  String get tournamentSaved;
+
+  /// No description provided for @tournamentDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Tournament deleted.'**
+  String get tournamentDeleted;
+
+  /// No description provided for @invalidWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid website URL.'**
+  String get invalidWebsite;
+
+  /// No description provided for @invalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid number.'**
+  String get invalidNumber;
+
+  /// No description provided for @noFutureTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'No future tournaments match these filters.'**
+  String get noFutureTournaments;
+
+  /// No description provided for @noPastTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'No past tournaments match these filters.'**
+  String get noPastTournaments;
+
   /// No description provided for @marketplace.
   ///
   /// In en, this message translates to:
@@ -248,12 +494,6 @@ abstract class AppLocalizations {
   /// **'Create listing'**
   String get createListing;
 
-  /// No description provided for @createTournament.
-  ///
-  /// In en, this message translates to:
-  /// **'Create tournament'**
-  String get createTournament;
-
   /// No description provided for @joinEvent.
   ///
   /// In en, this message translates to:
@@ -271,12 +511,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price'**
   String get price;
-
-  /// No description provided for @location.
-  ///
-  /// In en, this message translates to:
-  /// **'Location'**
-  String get location;
 
   /// No description provided for @date.
   ///

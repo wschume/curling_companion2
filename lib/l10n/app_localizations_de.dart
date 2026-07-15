@@ -15,6 +15,134 @@ class AppLocalizationsDe extends AppLocalizations {
   String get home => 'Startseite';
 
   @override
+  String get name => 'Name';
+
+  @override
+  String get location => 'Ort';
+
+  @override
+  String get currency => 'Währung';
+
+  @override
+  String get contactHint => 'E-Mail-Adresse oder Telefonnummer';
+
+  @override
+  String get invalidContact =>
+      'Gib eine gültige E-Mail-Adresse oder Telefonnummer ein.';
+
+  @override
+  String get invalidDateOrder =>
+      'Die Reihenfolge muss Anmeldeschluss < Startdatum < Enddatum sein.';
+
+  @override
+  String get durationTooLong => 'Ein Turnier darf höchstens 5 Tage dauern.';
+
+  @override
+  String get showPastTournaments => 'Vergangene Turniere anzeigen';
+
+  @override
+  String get hidePastTournaments => 'Vergangene Turniere ausblenden';
+
+  @override
+  String get myTournaments => 'Meine Turniere';
+
+  @override
+  String get allTournaments => 'Alle Turniere';
+
+  @override
+  String get futureTournaments => 'Kommende Turniere';
+
+  @override
+  String get pastTournaments => 'Vergangene Turniere';
+
+  @override
+  String get startDate => 'Startdatum';
+
+  @override
+  String get endDate => 'Enddatum';
+
+  @override
+  String get signupDeadline => 'Anmeldeschluss';
+
+  @override
+  String get club => 'Verein';
+
+  @override
+  String get city => 'Stadt';
+
+  @override
+  String get country => 'Land';
+
+  @override
+  String get entryFee => 'Startgebühr';
+
+  @override
+  String get maxTeams => 'Max. Teams';
+
+  @override
+  String get website => 'Webseite';
+
+  @override
+  String get contact => 'Kontakt';
+
+  @override
+  String get filters => 'Filter';
+
+  @override
+  String get filterByName => 'Nach Name filtern';
+
+  @override
+  String get filterByLocation => 'Nach Ort filtern';
+
+  @override
+  String get filterStartDate => 'Startdatum filtern';
+
+  @override
+  String get filterEndDate => 'Enddatum filtern';
+
+  @override
+  String get clearFilters => 'Filter löschen';
+
+  @override
+  String get createTournament => 'Turnier erstellen';
+
+  @override
+  String get editTournament => 'Turnier bearbeiten';
+
+  @override
+  String get deleteTournament => 'Turnier löschen';
+
+  @override
+  String get confirmDeleteTournament => 'Dieses Turnier löschen?';
+
+  @override
+  String get confirmDeleteTournamentMessage =>
+      'Diese Aktion kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get saveTournament => 'Turnier speichern';
+
+  @override
+  String get tournamentSaved => 'Turnier gespeichert.';
+
+  @override
+  String get tournamentDeleted => 'Turnier gelöscht.';
+
+  @override
+  String get invalidWebsite => 'Gib eine gültige Webseiten-URL ein.';
+
+  @override
+  String get invalidNumber => 'Gib eine gültige Zahl ein.';
+
+  @override
+  String get noFutureTournaments =>
+      'Keine kommenden Turniere passen zu den Filtern.';
+
+  @override
+  String get noPastTournaments =>
+      'Keine vergangenen Turniere passen zu den Filtern.';
+
+  @override
   String get marketplace => 'Marktplatz';
 
   @override
@@ -90,9 +218,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get createListing => 'Anzeige erstellen';
 
   @override
-  String get createTournament => 'Turnier erstellen';
-
-  @override
   String get joinEvent => 'Teilnehmen';
 
   @override
@@ -100,9 +225,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get price => 'Preis';
-
-  @override
-  String get location => 'Ort';
 
   @override
   String get date => 'Datum';
