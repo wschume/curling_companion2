@@ -50,15 +50,23 @@ Future<void> main() async {
 class AuthController extends ChangeNotifier {
   AuthController(this.service) {
     _email = service.currentEmail;
-    _subscription = service.authStateChanges.listen((email) {
+    _subscription = service.authStateChanges.listen((email) async {
+      if (_disposed) return;
       _email = email;
+      if (email != null) _language = await service.loadLanguage();
+      if (_disposed) return;
       notifyListeners();
     });
   }
   final AuthService service;
   String? _email;
+  String? _language;
+  String? _telephone;
+  bool _disposed = false;
   late final StreamSubscription<String?> _subscription;
   String? get email => _email;
+  String? get language => _language;
+  String? get telephone => _telephone;
   bool get isSignedIn => _email != null;
   // The Firebase implementation uses the stable Firebase UID. The local
   // implementation uses the email as a stable placeholder identity.
@@ -69,9 +77,30 @@ class AuthController extends ChangeNotifier {
   Future<void> register(String email, String password) =>
       service.register(email, password);
   Future<void> signOut() => service.signOut();
+  Future<void> updateEmail(String value) async {
+    await service.updateEmail(value);
+    _email = value;
+    notifyListeners();
+  }
+
+  Future<void> updatePassword(String value) => service.updatePassword(value);
+  Future<void> updateTelephone(String value) async {
+    await service.updateTelephone(value);
+    _telephone = value;
+    notifyListeners();
+  }
+
+  Future<void> updateLanguage(String value) async {
+    await service.updateLanguage(value);
+    _language = value;
+    notifyListeners();
+  }
+
+  Future<void> deleteAccount() => service.deleteAccount();
 
   @override
   void dispose() {
+    _disposed = true;
     _subscription.cancel();
     super.dispose();
   }
@@ -82,6 +111,7 @@ class LocaleController extends ChangeNotifier {
 
   Locale _locale;
   Locale get locale => _locale;
+  Locale get systemLocale => _systemLocale();
 
   static Locale _systemLocale() {
     final languageCode =
@@ -131,11 +161,13 @@ class CurlingCompanionApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/tournaments',
-          builder: (_, __) => const TournamentsPage(),
+          builder: (_, state) =>
+              TournamentsPage(initialTournamentId: state.extra as String?),
         ),
         GoRoute(
           path: '/players',
-          builder: (_, __) => const PlayersDirectoryPage(),
+          builder: (_, state) =>
+              PlayersDirectoryPage(initialTournamentId: state.extra as String?),
         ),
         GoRoute(
           path: '/tournaments/:id/players',
@@ -167,7 +199,10 @@ class _AppView extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp.router(
     title: 'Curling Companion',
     routerConfig: router,
-    locale: context.watch<LocaleController>().locale,
+    locale: (() {
+      final userLanguage = context.watch<AuthController>().language;
+      return userLanguage == null ? const Locale('en') : Locale(userLanguage);
+    })(),
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
       useMaterial3: true,
@@ -204,14 +239,16 @@ class AppShell extends StatelessWidget {
                 child: Text((auth.email ?? '?').substring(0, 1).toUpperCase()),
               ),
               onSelected: (value) {
+                if (value == 'settings') _showSettings(context);
                 if (value == 'logout') context.read<AuthController>().signOut();
               },
               itemBuilder: (_) => [
                 PopupMenuItem(enabled: false, child: Text(auth.email ?? '')),
                 PopupMenuItem(
-                  enabled: false,
                   value: 'settings',
-                  child: Text(l10n.settingsComingSoon),
+                  child: Text(
+                    auth.language == 'de' ? 'Einstellungen' : 'Settings',
+                  ),
                 ),
                 PopupMenuItem(value: 'logout', child: Text(l10n.logout)),
               ],
@@ -233,23 +270,226 @@ class AppShell extends StatelessWidget {
   }
 }
 
+Future<void> _showSettings(BuildContext context) async {
+  final auth = context.read<AuthController>();
+  final language = await showDialog<String>(
+    context: context,
+    builder: (_) => _ProfileSettingsDialog(
+      email: auth.email ?? '',
+      telephone: auth.telephone ?? '',
+      language: auth.language ?? Localizations.localeOf(context).languageCode,
+    ),
+  );
+  if (language != null && context.mounted) {
+    await auth.updateLanguage(language);
+    context.read<LocaleController>().select(Locale(language));
+  }
+}
+
+class _ProfileSettingsDialog extends StatefulWidget {
+  const _ProfileSettingsDialog({
+    required this.email,
+    required this.telephone,
+    required this.language,
+  });
+  final String email;
+  final String telephone;
+  final String language;
+  @override
+  State<_ProfileSettingsDialog> createState() => _ProfileSettingsDialogState();
+}
+
+class _ProfileSettingsDialogState extends State<_ProfileSettingsDialog> {
+  late final email = TextEditingController(text: widget.email);
+  final password = TextEditingController(), confirm = TextEditingController();
+  late final telephone = TextEditingController(text: widget.telephone);
+  late String language = widget.language;
+  bool busy = false;
+  String? error;
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+    confirm.dispose();
+    telephone.dispose();
+    super.dispose();
+  }
+
+  Future<void> save() async {
+    if (password.text.isNotEmpty && password.text != confirm.text) {
+      setState(() => error = AppLocalizations.of(context).passwordsDoNotMatch);
+      return;
+    }
+    setState(() => busy = true);
+    final auth = context.read<AuthController>();
+    try {
+      if (email.text.trim() != widget.email)
+        await auth.updateEmail(email.text.trim());
+      if (password.text.isNotEmpty) await auth.updatePassword(password.text);
+      if (telephone.text.trim().isNotEmpty)
+        await auth.updateTelephone(telephone.text.trim());
+      if (mounted) Navigator.pop(context, language);
+    } catch (_) {
+      if (mounted)
+        setState(
+          () => error = AppLocalizations.of(context).settingsUpdateError,
+        );
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> deleteAccount() async {
+    final id = context.read<AuthController>().userId;
+    if (id == null) return;
+    final tournaments = await context
+        .read<TournamentRepository>()
+        .watchTournaments()
+        .first;
+    final listings = await context
+        .read<MarketplaceRepository>()
+        .watchListings()
+        .first;
+    final tournamentCount = tournaments
+        .where((t) => t.organizerId == id)
+        .length;
+    final listingCount = listings.where((l) => l.ownerId == id).length;
+    if (tournamentCount > 0 || listingCount > 0) {
+      if (mounted)
+        setState(
+          () => error = AppLocalizations.of(context).accountDeleteBlocked,
+        );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(AppLocalizations.of(context).confirmDeleteAccount),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => busy = true);
+    try {
+      await context.read<AuthController>().deleteAccount();
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted)
+        setState(
+          () => error = AppLocalizations.of(context).accountDeletedError,
+        );
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(AppLocalizations.of(context).profileSettings),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (error != null)
+            Text(
+              error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          TextField(
+            controller: email,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).email,
+            ),
+          ),
+          TextField(
+            controller: password,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).newPassword,
+            ),
+          ),
+          TextField(
+            controller: confirm,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).confirmPassword,
+            ),
+          ),
+          TextField(
+            controller: telephone,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).telephone,
+            ),
+          ),
+          DropdownButtonFormField<String>(
+            value: language,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).language,
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 'en',
+                child: Text(AppLocalizations.of(context).english),
+              ),
+              DropdownMenuItem(
+                value: 'de',
+                child: Text(AppLocalizations.of(context).german),
+              ),
+            ],
+            onChanged: busy ? null : (v) => setState(() => language = v!),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: busy ? null : deleteAccount,
+        child: Text(AppLocalizations.of(context).deleteAccount),
+      ),
+      TextButton(
+        onPressed: busy ? null : () => Navigator.pop(context),
+        child: Text(AppLocalizations.of(context).cancel),
+      ),
+      FilledButton(
+        onPressed: busy ? null : save,
+        child: Text(AppLocalizations.of(context).submit),
+      ),
+    ],
+  );
+}
+
 class _LanguageMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final auth = context.watch<AuthController>();
+    final selectedLanguage =
+        auth.language ?? Localizations.localeOf(context).languageCode;
     return PopupMenuButton<Locale>(
       tooltip: l10n.language,
       icon: const Icon(Icons.language),
-      onSelected: context.read<LocaleController>().select,
+      onSelected: (locale) async {
+        context.read<LocaleController>().select(locale);
+        if (auth.isSignedIn) await auth.updateLanguage(locale.languageCode);
+      },
       itemBuilder: (_) => [
         CheckedPopupMenuItem(
           value: const Locale('en'),
-          checked: context.read<LocaleController>().locale.languageCode == 'en',
+          checked: selectedLanguage == 'en',
           child: const Text('English'),
         ),
         CheckedPopupMenuItem(
           value: const Locale('de'),
-          checked: context.read<LocaleController>().locale.languageCode == 'de',
+          checked: selectedLanguage == 'de',
           child: const Text('Deutsch'),
         ),
       ],
@@ -412,6 +652,12 @@ class _AuthPageState extends State<AuthPage> {
                     TextFormField(
                       controller: _password,
                       obscureText: true,
+                      textInputAction: widget.register
+                          ? TextInputAction.next
+                          : TextInputAction.done,
+                      onFieldSubmitted: (_) {
+                        if (!widget.register && !_busy) _submit();
+                      },
                       decoration: InputDecoration(labelText: l10n.password),
                       validator: (value) => value == null || value.length < 6
                           ? l10n.passwordTooShort
@@ -421,6 +667,10 @@ class _AuthPageState extends State<AuthPage> {
                       TextFormField(
                         controller: _confirm,
                         obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) {
+                          if (!_busy) _submit();
+                        },
                         decoration: InputDecoration(
                           labelText: l10n.confirmPassword,
                         ),
@@ -459,6 +709,7 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<void> _submit() async {
+    if (_busy) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _busy = true;
@@ -494,8 +745,18 @@ class _AuthPageState extends State<AuthPage> {
   }
 }
 
-class MarketplacePage extends StatelessWidget {
+class MarketplacePage extends StatefulWidget {
   const MarketplacePage({super.key});
+
+  @override
+  State<MarketplacePage> createState() => _MarketplacePageState();
+}
+
+class _MarketplacePageState extends State<MarketplacePage> {
+  String _category = 'all';
+  String _sort = 'dateNewest';
+  bool _sortAscending = false;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -503,35 +764,417 @@ class MarketplacePage extends StatelessWidget {
     return PageFrame(
       title: l10n.marketplace,
       intro: l10n.marketplaceIntro,
-      action: canEdit ? _WriteButton(label: l10n.createListing) : null,
+      action: canEdit
+          ? FilledButton.icon(
+              onPressed: () => _createListing(context),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.createListing),
+            )
+          : null,
       child: StreamBuilder<List<MarketplaceListing>>(
         stream: context.read<MarketplaceRepository>().watchListings(),
-        builder: (_, snapshot) => _ListState<MarketplaceListing>(
-          snapshot: snapshot,
-          itemBuilder: (item) => Card(
-            child: ListTile(
-              leading: const Icon(Icons.sports_hockey),
-              title: Text(item.title),
-              subtitle: Text(item.description),
-              trailing: Text('${item.price.toStringAsFixed(0)} €'),
-            ),
+        builder: (_, snapshot) {
+          final listings = _filteredAndSorted(snapshot.data ?? const []);
+          return Column(
+            children: [
+              _MarketplaceFilters(
+                category: _category,
+                onCategoryChanged: (value) => setState(() => _category = value),
+              ),
+              _listingTable(snapshot, listings),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<MarketplaceListing> _filteredAndSorted(List<MarketplaceListing> items) {
+    final result = items
+        .where((item) => _category == 'all' || item.category == _category)
+        .toList();
+    result.sort((a, b) {
+      final comparison = switch (_sort) {
+        'title' => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        'description' => a.description.toLowerCase().compareTo(
+          b.description.toLowerCase(),
+        ),
+        'category' => a.category.compareTo(b.category),
+        'price' || 'priceLow' || 'priceHigh' => a.price.compareTo(b.price),
+        'location' => a.location.toLowerCase().compareTo(
+          b.location.toLowerCase(),
+        ),
+        'seller' => a.sellerContact.toLowerCase().compareTo(
+          b.sellerContact.toLowerCase(),
+        ),
+        'date' ||
+        'dateOldest' ||
+        'dateNewest' => (a.listedAt ?? DateTime(1970)).compareTo(
+          b.listedAt ?? DateTime(1970),
+        ),
+        _ => 0,
+      };
+      return _sortAscending ? comparison : -comparison;
+    });
+    return result;
+  }
+
+  void _sortBy(String field, bool ascending) => setState(() {
+    _sort = field;
+    _sortAscending = ascending;
+  });
+
+  Widget _listingTable(
+    AsyncSnapshot<List<MarketplaceListing>> snapshot,
+    List<MarketplaceListing> listings,
+  ) {
+    if (snapshot.hasError) return const Text('Unable to load data.');
+    if (!snapshot.hasData) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (listings.isEmpty) return Text(AppLocalizations.of(context).noItems);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        dataRowMinHeight: 64,
+        dataRowMaxHeight: 64,
+        sortColumnIndex: _tableSortColumn,
+        sortAscending: _sortAscending,
+        columns: [
+          _sortableColumn('Title', 'title', 0),
+          _sortableColumn('Description', 'description', 1),
+          _sortableColumn('Category', 'category', 2),
+          _sortableColumn('Price', 'price', 3, numeric: true),
+          _sortableColumn('Location', 'location', 4),
+          _sortableColumn('Seller', 'seller', 5),
+          _sortableColumn('Listed', 'date', 6),
+          DataColumn(label: Text('')),
+        ],
+        rows: listings.map((item) {
+          final isOwner = context.read<AuthController>().userId == item.ownerId;
+          return DataRow(
+            cells: [
+              DataCell(
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Text(item.title, overflow: TextOverflow.ellipsis),
+                ),
+              ),
+              DataCell(
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: Text(
+                    item.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              DataCell(Text(item.category)),
+              DataCell(
+                Text('${item.price.toStringAsFixed(2)} ${item.currency}'),
+              ),
+              DataCell(Text(item.location)),
+              DataCell(Text(item.sellerContact)),
+              DataCell(
+                Text(
+                  item.listedAt == null
+                      ? '—'
+                      : DateFormat.yMMMd().format(item.listedAt!),
+                ),
+              ),
+              DataCell(
+                isOwner
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            tooltip: 'Edit listing',
+                            onPressed: () => _editListing(item),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            tooltip: 'Delete listing',
+                            onPressed: () => _deleteListing(item),
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  int? get _tableSortColumn => switch (_sort) {
+    'title' => 0,
+    'description' => 1,
+    'category' => 2,
+    'price' || 'priceLow' || 'priceHigh' => 3,
+    'location' => 4,
+    'seller' => 5,
+    'date' || 'dateOldest' || 'dateNewest' => 6,
+    _ => null,
+  };
+
+  DataColumn _sortableColumn(
+    String label,
+    String field,
+    int index, {
+    bool numeric = false,
+  }) => DataColumn(
+    label: Text(label),
+    numeric: numeric,
+    onSort: (_, ascending) => _sortBy(field, ascending),
+  );
+
+  Future<void> _createListing(BuildContext context) async {
+    final auth = context.read<AuthController>();
+    final userId = auth.userId;
+    final email = auth.email;
+    if (userId == null || email == null) return;
+    final listing = await showDialog<MarketplaceListing>(
+      context: context,
+      builder: (_) => _MarketplaceListingDialog(ownerId: userId, email: email),
+    );
+    if (listing == null || !context.mounted) return;
+    await context.read<MarketplaceRepository>().save(listing);
+  }
+
+  Future<void> _editListing(MarketplaceListing listing) async {
+    final edited = await showDialog<MarketplaceListing>(
+      context: context,
+      builder: (_) => _MarketplaceListingDialog(
+        ownerId: listing.ownerId,
+        email: listing.sellerContact,
+        initial: listing,
+      ),
+    );
+    if (edited == null || !mounted) return;
+    await context.read<MarketplaceRepository>().save(edited);
+  }
+
+  Future<void> _deleteListing(MarketplaceListing listing) async {
+    if (context.read<AuthController>().userId != listing.ownerId) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete listing?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => context.pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await context.read<MarketplaceRepository>().delete(listing.id);
+    }
+  }
+}
+
+class _MarketplaceFilters extends StatelessWidget {
+  const _MarketplaceFilters({
+    required this.category,
+    required this.onCategoryChanged,
+  });
+  final String category;
+  final ValueChanged<String> onCategoryChanged;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        SizedBox(
+          width: 180,
+          child: DropdownButtonFormField<String>(
+            initialValue: category,
+            decoration: const InputDecoration(labelText: 'Category'),
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('All categories')),
+              DropdownMenuItem(value: 'shoes', child: Text('Shoes')),
+              DropdownMenuItem(value: 'stones', child: Text('Stones')),
+              DropdownMenuItem(value: 'brooms', child: Text('Brooms')),
+              DropdownMenuItem(value: 'other', child: Text('Other')),
+            ],
+            onChanged: (value) => onCategoryChanged(value!),
           ),
         ),
+      ],
+    ),
+  );
+}
+
+class _MarketplaceListingDialog extends StatefulWidget {
+  const _MarketplaceListingDialog({
+    required this.ownerId,
+    required this.email,
+    this.initial,
+  });
+  final String ownerId;
+  final String email;
+  final MarketplaceListing? initial;
+
+  @override
+  State<_MarketplaceListingDialog> createState() =>
+      _MarketplaceListingDialogState();
+}
+
+class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final _title = TextEditingController(text: widget.initial?.title);
+  late final _description = TextEditingController(
+    text: widget.initial?.description,
+  );
+  late final _price = TextEditingController(
+    text: widget.initial?.price.toString(),
+  );
+  late final _currency = TextEditingController(
+    text: widget.initial?.currency ?? 'EUR',
+  );
+  late final _location = TextEditingController(text: widget.initial?.location);
+  late String _category = widget.initial?.category ?? 'other';
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _description.dispose();
+    _price.dispose();
+    _currency.dispose();
+    _location.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.initial == null ? 'Create listing' : 'Edit listing'),
+    content: SizedBox(
+      width: 460,
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _title,
+                decoration: const InputDecoration(labelText: 'Title'),
+                validator: _required,
+              ),
+              TextFormField(
+                controller: _description,
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+                validator: _required,
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: _category,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: const ['shoes', 'stones', 'brooms', 'other']
+                    .map(
+                      (category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(category),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (category) => setState(() => _category = category!),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _price,
+                      decoration: const InputDecoration(labelText: 'Price'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (value) =>
+                          double.tryParse(value?.replaceAll(',', '.') ?? '') ==
+                              null
+                          ? 'Enter a valid price.'
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 100,
+                    child: TextFormField(
+                      controller: _currency,
+                      decoration: const InputDecoration(labelText: 'Currency'),
+                      textCapitalization: TextCapitalization.characters,
+                      validator: _required,
+                    ),
+                  ),
+                ],
+              ),
+              TextFormField(
+                controller: _location,
+                decoration: const InputDecoration(labelText: 'Location'),
+                validator: _required,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+      FilledButton(
+        onPressed: _submit,
+        child: Text(widget.initial == null ? 'Create listing' : 'Save changes'),
+      ),
+    ],
+  );
+
+  String? _required(String? value) =>
+      value == null || value.trim().isEmpty ? 'This field is required.' : null;
+
+  void _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    context.pop(
+      MarketplaceListing(
+        id:
+            widget.initial?.id ??
+            DateTime.now().microsecondsSinceEpoch.toString(),
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        price: double.parse(_price.text.replaceAll(',', '.')),
+        currency: _currency.text.trim().toUpperCase(),
+        category: _category,
+        location: _location.text.trim(),
+        sellerName: widget.initial?.sellerName ?? widget.email,
+        sellerContact: widget.initial?.sellerContact ?? widget.email,
+        listedAt: widget.initial?.listedAt ?? DateTime.now(),
+        ownerId: widget.ownerId,
       ),
     );
   }
 }
 
 class TournamentsPage extends StatefulWidget {
-  const TournamentsPage({super.key});
+  const TournamentsPage({super.key, this.initialTournamentId});
+  final String? initialTournamentId;
 
   @override
   State<TournamentsPage> createState() => _TournamentsPageState();
 }
 
 class _TournamentsPageState extends State<TournamentsPage> {
-  final _nameController = TextEditingController();
   final _locationController = TextEditingController();
+  final _selectedTournamentIds = <String>{};
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
   String _sortField = 'startDate';
@@ -540,8 +1183,15 @@ class _TournamentsPageState extends State<TournamentsPage> {
   bool _showMyTournaments = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.initialTournamentId != null) {
+      _selectedTournamentIds.add(widget.initialTournamentId!);
+    }
+  }
+
+  @override
   void dispose() {
-    _nameController.dispose();
     _locationController.dispose();
     super.dispose();
   }
@@ -550,10 +1200,14 @@ class _TournamentsPageState extends State<TournamentsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final canEdit = context.watch<AuthController>().isSignedIn;
+    final playerRepository = Provider.of<PlayerRepository?>(
+      context,
+      listen: false,
+    );
     return PageFrame(
       title: l10n.tournaments,
       intro: l10n.tournamentsIntro,
-      action: canEdit
+      titleAction: canEdit
           ? FilledButton.icon(
               onPressed: _createTournament,
               icon: const Icon(Icons.add),
@@ -562,7 +1216,19 @@ class _TournamentsPageState extends State<TournamentsPage> {
           : null,
       child: StreamBuilder<List<Tournament>>(
         stream: context.read<TournamentRepository>().watchTournaments(),
-        builder: (_, snapshot) => _buildContent(context, snapshot),
+        builder: (_, snapshot) => StreamBuilder<List<TeamPlayerSearch>>(
+          stream: playerRepository?.watchTeamSearches(),
+          builder: (_, searches) => StreamBuilder<List<PlayerTeamSearch>>(
+            stream: playerRepository?.watchPlayerTeamSearches(),
+            builder: (_, teamSearches) => _buildContent(
+              context,
+              snapshot,
+              searches.data?.map((search) => search.tournamentId).toSet() ?? {},
+              teamSearches.data?.map((search) => search.tournamentId).toSet() ??
+                  {},
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -570,6 +1236,8 @@ class _TournamentsPageState extends State<TournamentsPage> {
   Widget _buildContent(
     BuildContext context,
     AsyncSnapshot<List<Tournament>> snapshot,
+    Set<String> tournamentsWithPlayerSearches,
+    Set<String> tournamentsWithTeamSearches,
   ) {
     final l10n = AppLocalizations.of(context);
     if (snapshot.hasError) return const Text('Unable to load tournaments.');
@@ -583,24 +1251,37 @@ class _TournamentsPageState extends State<TournamentsPage> {
       snapshot.data!,
       organizerId: _showMyTournaments ? auth.userId : null,
     );
-    final future = all.where((item) => !item.endDate.isBefore(now)).toList();
-    final past = all.where((item) => item.endDate.isBefore(now)).toList();
+    final focused = all
+        .where(
+          (item) =>
+              _selectedTournamentIds.isEmpty ||
+              _selectedTournamentIds.contains(item.id),
+        )
+        .toList();
+    final future = focused
+        .where((item) => !item.endDate.isBefore(now))
+        .toList();
+    final past = focused.where((item) => item.endDate.isBefore(now)).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _TournamentFilters(
-          nameController: _nameController,
+          tournaments: snapshot.data!,
+          selectedTournamentIds: _selectedTournamentIds,
           locationController: _locationController,
           filterStartDate: _filterStartDate,
           filterEndDate: _filterEndDate,
-          onNameChanged: (_) => setState(() {}),
+          onTournamentToggled: (id) => setState(() {
+            if (!_selectedTournamentIds.add(id))
+              _selectedTournamentIds.remove(id);
+          }),
           onLocationChanged: (_) => setState(() {}),
           onStartDateChanged: (date) => setState(() => _filterStartDate = date),
           onEndDateChanged: (date) => setState(() => _filterEndDate = date),
           onClear: () {
-            _nameController.clear();
             _locationController.clear();
             setState(() {
+              _selectedTournamentIds.clear();
               _filterStartDate = null;
               _filterEndDate = null;
             });
@@ -633,6 +1314,8 @@ class _TournamentsPageState extends State<TournamentsPage> {
           canEdit: context.read<AuthController>().isSignedIn,
           onEdit: _editTournament,
           onDelete: _deleteTournament,
+          tournamentsWithPlayerSearches: tournamentsWithPlayerSearches,
+          tournamentsWithTeamSearches: tournamentsWithTeamSearches,
         ),
         const SizedBox(height: 24),
         TextButton.icon(
@@ -662,6 +1345,8 @@ class _TournamentsPageState extends State<TournamentsPage> {
             onSort: _sort,
             canEdit: context.read<AuthController>().isSignedIn,
             onEdit: _editTournament,
+            tournamentsWithPlayerSearches: tournamentsWithPlayerSearches,
+            tournamentsWithTeamSearches: tournamentsWithTeamSearches,
           ),
         ],
       ],
@@ -669,11 +1354,8 @@ class _TournamentsPageState extends State<TournamentsPage> {
   }
 
   List<Tournament> _filtered(List<Tournament> source, {String? organizerId}) {
-    final name = _nameController.text.trim().toLowerCase();
     final location = _locationController.text.trim().toLowerCase();
     final result = source.where((tournament) {
-      final matchesName =
-          name.isEmpty || tournament.name.toLowerCase().contains(name);
       final searchableLocation =
           '${tournament.club ?? ''} ${tournament.city} ${tournament.country ?? ''}'
               .toLowerCase();
@@ -687,11 +1369,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
           !tournament.endDate.isAfter(_filterEndDate!);
       final matchesOrganizer =
           organizerId == null || tournament.organizerId == organizerId;
-      return matchesName &&
-          matchesLocation &&
-          matchesStart &&
-          matchesEnd &&
-          matchesOrganizer;
+      return matchesLocation && matchesStart && matchesEnd && matchesOrganizer;
     }).toList();
     result.sort((a, b) {
       final left = _sortValue(a);
@@ -809,22 +1487,24 @@ class _TournamentsPageState extends State<TournamentsPage> {
 
 class _TournamentFilters extends StatelessWidget {
   const _TournamentFilters({
-    required this.nameController,
+    required this.tournaments,
+    required this.selectedTournamentIds,
     required this.locationController,
     required this.filterStartDate,
     required this.filterEndDate,
-    required this.onNameChanged,
+    required this.onTournamentToggled,
     required this.onLocationChanged,
     required this.onStartDateChanged,
     required this.onEndDateChanged,
     required this.onClear,
   });
 
-  final TextEditingController nameController;
+  final List<Tournament> tournaments;
+  final Set<String> selectedTournamentIds;
   final TextEditingController locationController;
   final DateTime? filterStartDate;
   final DateTime? filterEndDate;
-  final ValueChanged<String> onNameChanged;
+  final ValueChanged<String> onTournamentToggled;
   final ValueChanged<String> onLocationChanged;
   final ValueChanged<DateTime?> onStartDateChanged;
   final ValueChanged<DateTime?> onEndDateChanged;
@@ -841,16 +1521,10 @@ class _TournamentFilters extends StatelessWidget {
           runSpacing: 12,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            SizedBox(
-              width: 220,
-              child: TextField(
-                controller: nameController,
-                onChanged: onNameChanged,
-                decoration: InputDecoration(
-                  labelText: l10n.filterByName,
-                  prefixIcon: const Icon(Icons.search),
-                ),
-              ),
+            _TournamentMultiSelectFilter(
+              tournaments: tournaments,
+              selectedIds: selectedTournamentIds,
+              onToggle: onTournamentToggled,
             ),
             SizedBox(
               width: 220,
@@ -883,6 +1557,118 @@ class _TournamentFilters extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TournamentMultiSelectFilter extends StatefulWidget {
+  const _TournamentMultiSelectFilter({
+    required this.tournaments,
+    required this.selectedIds,
+    required this.onToggle,
+  });
+
+  final List<Tournament> tournaments;
+  final Set<String> selectedIds;
+  final ValueChanged<String> onToggle;
+
+  @override
+  State<_TournamentMultiSelectFilter> createState() =>
+      _TournamentMultiSelectFilterState();
+}
+
+class _TournamentMultiSelectFilterState
+    extends State<_TournamentMultiSelectFilter> {
+  final _link = LayerLink();
+  OverlayEntry? _overlay;
+
+  @override
+  void dispose() {
+    _close();
+    super.dispose();
+  }
+
+  void _toggle() => _overlay == null ? _open() : _close();
+
+  void _open() {
+    _overlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _close,
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _link,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            offset: const Offset(0, 4),
+            child: Material(
+              elevation: 6,
+              child: SizedBox(
+                width: 220,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 260),
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: widget.tournaments
+                        .map(
+                          (tournament) => CheckboxListTile(
+                            dense: true,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            value: widget.selectedIds.contains(tournament.id),
+                            title: Text(
+                              tournament.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onChanged: (_) {
+                              widget.onToggle(tournament.id);
+                              _overlay?.markNeedsBuild();
+                            },
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_overlay!);
+  }
+
+  void _close() {
+    _overlay?.remove();
+    _overlay = null;
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 220,
+    child: CompositedTransformTarget(
+      link: _link,
+      child: InkWell(
+        onTap: _toggle,
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context).tournamentFilter,
+            border: OutlineInputBorder(),
+            suffixIcon: Icon(Icons.arrow_drop_down),
+          ),
+          child: Text(
+            widget.selectedIds.isEmpty
+                ? AppLocalizations.of(context).all
+                : AppLocalizations.of(
+                    context,
+                  ).selectedCount(widget.selectedIds.length),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _FilterDateButton extends StatelessWidget {
@@ -922,6 +1708,8 @@ class _TournamentTable extends StatefulWidget {
     required this.onSort,
     required this.canEdit,
     required this.onEdit,
+    required this.tournamentsWithPlayerSearches,
+    required this.tournamentsWithTeamSearches,
     this.onDelete,
   });
 
@@ -932,6 +1720,8 @@ class _TournamentTable extends StatefulWidget {
   final ValueChanged<String> onSort;
   final bool canEdit;
   final ValueChanged<Tournament> onEdit;
+  final Set<String> tournamentsWithPlayerSearches;
+  final Set<String> tournamentsWithTeamSearches;
   final ValueChanged<Tournament>? onDelete;
 
   @override
@@ -977,6 +1767,18 @@ class _TournamentTableState extends State<_TournamentTable> {
               label: Text(l10n.name),
               onSort: (_, __) => widget.onSort('name'),
             ),
+            const DataColumn(
+              label: Tooltip(
+                message: 'Player search available',
+                child: Icon(Icons.person_outline),
+              ),
+            ),
+            const DataColumn(
+              label: Tooltip(
+                message: 'Team search available',
+                child: Icon(Icons.groups_outlined),
+              ),
+            ),
             DataColumn(
               label: Text(l10n.startDate),
               onSort: (_, __) => widget.onSort('startDate'),
@@ -1002,7 +1804,53 @@ class _TournamentTableState extends State<_TournamentTable> {
                 widget.canEdit && auth.userId == tournament.organizerId;
             return DataRow(
               cells: [
-                DataCell(Text(tournament.name)),
+                DataCell(
+                  TextButton(
+                    onPressed: () =>
+                        context.go('/tournaments', extra: tournament.id),
+                    child: Text(tournament.name),
+                  ),
+                ),
+                DataCell(
+                  IconButton(
+                    tooltip: 'View player search',
+                    onPressed:
+                        widget.tournamentsWithPlayerSearches.contains(
+                          tournament.id,
+                        )
+                        ? () => context.go('/players', extra: tournament.id)
+                        : null,
+                    icon: Icon(
+                      Icons.person,
+                      color:
+                          widget.tournamentsWithPlayerSearches.contains(
+                            tournament.id,
+                          )
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                ),
+                DataCell(
+                  IconButton(
+                    tooltip: 'View team search',
+                    onPressed:
+                        widget.tournamentsWithTeamSearches.contains(
+                          tournament.id,
+                        )
+                        ? () => context.go('/players', extra: tournament.id)
+                        : null,
+                    icon: Icon(
+                      Icons.groups,
+                      color:
+                          widget.tournamentsWithTeamSearches.contains(
+                            tournament.id,
+                          )
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                ),
                 DataCell(Text(_formatDate(context, tournament.startDate))),
                 DataCell(Text(_formatDate(context, tournament.endDate))),
                 DataCell(
@@ -1053,12 +1901,6 @@ class _TournamentTableState extends State<_TournamentTable> {
                           onPressed: () => widget.onDelete!(tournament),
                           icon: const Icon(Icons.delete_outline),
                         ),
-                      IconButton(
-                        tooltip: l10n.players,
-                        onPressed: () =>
-                            context.go('/tournaments/${tournament.id}/players'),
-                        icon: const Icon(Icons.groups_outlined),
-                      ),
                     ],
                   ),
                 ),
@@ -1476,37 +2318,612 @@ class PlayersPage extends StatelessWidget {
   }
 }
 
-class PlayersDirectoryPage extends StatelessWidget {
-  const PlayersDirectoryPage({super.key});
+class PlayersDirectoryPage extends StatefulWidget {
+  const PlayersDirectoryPage({super.key, this.initialTournamentId});
+  final String? initialTournamentId;
+
+  @override
+  State<PlayersDirectoryPage> createState() => _PlayersDirectoryPageState();
+}
+
+class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
+  final _selectedTournamentIds = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialTournamentId != null) {
+      _selectedTournamentIds.add(widget.initialTournamentId!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return PageFrame(
       title: l10n.players,
-      intro: l10n.playersIntro,
+      intro: l10n.teamsLookingForPlayers,
       child: StreamBuilder<List<Tournament>>(
         stream: context.read<TournamentRepository>().watchTournaments(),
-        builder: (_, snapshot) => _ListState<Tournament>(
-          snapshot: snapshot,
-          itemBuilder: (tournament) => Card(
-            child: ListTile(
-              leading: const Icon(Icons.groups),
-              title: Text(tournament.name),
-              subtitle: Text(
-                '${tournament.city}, ${tournament.country} · ${tournament.startDate.toLocal().toString().split(' ').first}',
-              ),
-              trailing: FilledButton.tonal(
-                onPressed: () =>
-                    context.go('/tournaments/${tournament.id}/players'),
-                child: Text(l10n.players),
-              ),
+        builder: (_, tournaments) => StreamBuilder<List<TeamPlayerSearch>>(
+          stream: context.read<PlayerRepository>().watchTeamSearches(),
+          builder: (_, searches) => StreamBuilder<List<PlayerTeamSearch>>(
+            stream: context.read<PlayerRepository>().watchPlayerTeamSearches(),
+            builder: (_, teamSearches) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TournamentMultiSelectFilter(
+                  tournaments: tournaments.data ?? const [],
+                  selectedIds: _selectedTournamentIds,
+                  onToggle: (id) => setState(() {
+                    if (!_selectedTournamentIds.add(id)) {
+                      _selectedTournamentIds.remove(id);
+                    }
+                  }),
+                ),
+                if (_selectedTournamentIds.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () => setState(_selectedTournamentIds.clear),
+                    icon: const Icon(Icons.clear),
+                    label: Text(l10n.clearFilters),
+                  ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Text(
+                      l10n.teamsSearchingForPlayers,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(width: 12),
+                    if (context.watch<AuthController>().isSignedIn)
+                      FilledButton.icon(
+                        onPressed: _createSearch,
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.createPlayerSearch),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _searchTable(tournaments.data ?? const [], searches),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Text(
+                      l10n.playersSearchingForTeams,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(width: 12),
+                    if (context.watch<AuthController>().isSignedIn)
+                      FilledButton.icon(
+                        onPressed: _createTeamSearch,
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.createTeamSearch),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _teamSearchTable(tournaments.data ?? const [], teamSearches),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+
+  Widget _teamSearchTable(
+    List<Tournament> tournaments,
+    AsyncSnapshot<List<PlayerTeamSearch>> snapshot,
+  ) {
+    if (snapshot.hasError)
+      return Text(AppLocalizations.of(context).unableToLoadData);
+    if (!snapshot.hasData)
+      return const Center(child: CircularProgressIndicator());
+    final byId = {
+      for (final tournament in tournaments) tournament.id: tournament,
+    };
+    final searches = snapshot.data!
+        .where(
+          (search) =>
+              _selectedTournamentIds.isEmpty ||
+              _selectedTournamentIds.contains(search.tournamentId),
+        )
+        .toList();
+    if (searches.isEmpty) return Text(AppLocalizations.of(context).noItems);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: [
+          DataColumn(label: Text(AppLocalizations.of(context).tournament)),
+          DataColumn(label: Text(AppLocalizations.of(context).role)),
+          DataColumn(label: Text(AppLocalizations.of(context).contact)),
+          DataColumn(label: Text('')),
+        ],
+        rows: searches.map((search) {
+          final owner = context.read<AuthController>().userId == search.ownerId;
+          return DataRow(
+            cells: [
+              DataCell(
+                SizedBox(
+                  width: 300,
+                  child: byId[search.tournamentId] == null
+                      ? Text(AppLocalizations.of(context).tournamentUnavailable)
+                      : Builder(
+                          builder: (context) {
+                            final tournament = byId[search.tournamentId]!;
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextButton(
+                                  onPressed: () => context.go(
+                                    '/tournaments',
+                                    extra: tournament.id,
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      tournament.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${tournament.city}${tournament.country == null ? '' : ', ${tournament.country}'} · ${DateFormat.yMMMd().format(tournament.startDate)} – ${DateFormat.yMMMd().format(tournament.endDate)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+              ),
+              DataCell(Text(search.role)),
+              DataCell(Text(search.contact)),
+              DataCell(
+                owner
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            tooltip: AppLocalizations.of(context).editSearch,
+                            onPressed: () => _editTeamSearch(search),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            tooltip: AppLocalizations.of(context).deleteSearch,
+                            onPressed: () => _deleteTeamSearch(search),
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Future<void> _createTeamSearch() async {
+    final auth = context.read<AuthController>();
+    if (auth.userId == null || auth.email == null) return;
+    final tournaments = await context
+        .read<TournamentRepository>()
+        .watchTournaments()
+        .first;
+    if (!mounted) return;
+    final result = await showDialog<PlayerTeamSearch>(
+      context: context,
+      builder: (_) => _PlayerTeamSearchDialog(
+        ownerId: auth.userId!,
+        contact: auth.email!,
+        tournaments: tournaments,
+      ),
+    );
+    if (result != null && mounted)
+      await context.read<PlayerRepository>().savePlayerTeamSearch(result);
+  }
+
+  Future<void> _editTeamSearch(PlayerTeamSearch search) async {
+    if (context.read<AuthController>().userId != search.ownerId) return;
+    final tournaments = await context
+        .read<TournamentRepository>()
+        .watchTournaments()
+        .first;
+    if (!mounted) return;
+    final result = await showDialog<PlayerTeamSearch>(
+      context: context,
+      builder: (_) => _PlayerTeamSearchDialog(
+        ownerId: search.ownerId,
+        contact: search.contact,
+        tournaments: tournaments,
+        initial: search,
+      ),
+    );
+    if (result != null && mounted)
+      await context.read<PlayerRepository>().savePlayerTeamSearch(result);
+  }
+
+  Future<void> _deleteTeamSearch(PlayerTeamSearch search) async {
+    if (context.read<AuthController>().userId != search.ownerId) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(AppLocalizations.of(context).deleteTeamSearch),
+        content: Text(
+          AppLocalizations.of(context).confirmDeleteTournamentMessage,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          FilledButton(
+            onPressed: () => context.pop(true),
+            child: Text(AppLocalizations.of(context).deleteSearch),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted)
+      await context.read<PlayerRepository>().deletePlayerTeamSearch(search.id);
+  }
+
+  Widget _searchTable(
+    List<Tournament> tournaments,
+    AsyncSnapshot<List<TeamPlayerSearch>> snapshot,
+  ) {
+    if (snapshot.hasError)
+      return Text(AppLocalizations.of(context).unableToLoadData);
+    if (!snapshot.hasData)
+      return const Center(child: CircularProgressIndicator());
+    final byId = {
+      for (final tournament in tournaments) tournament.id: tournament,
+    };
+    final searches = snapshot.data!
+        .where(
+          (search) =>
+              _selectedTournamentIds.isEmpty ||
+              _selectedTournamentIds.contains(search.tournamentId),
+        )
+        .toList();
+    if (searches.isEmpty) return Text(AppLocalizations.of(context).noItems);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: [
+          DataColumn(label: Text(AppLocalizations.of(context).tournament)),
+          DataColumn(label: Text(AppLocalizations.of(context).role)),
+          DataColumn(label: Text(AppLocalizations.of(context).contact)),
+          DataColumn(label: Text('')),
+        ],
+        rows: searches.map((search) {
+          final tournament = byId[search.tournamentId];
+          final owner = context.read<AuthController>().userId == search.ownerId;
+          return DataRow(
+            cells: [
+              DataCell(
+                SizedBox(
+                  width: 300,
+                  child: tournament == null
+                      ? Text(AppLocalizations.of(context).tournamentUnavailable)
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              onPressed: () => context.go(
+                                '/tournaments',
+                                extra: tournament.id,
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  tournament.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${tournament.city}${tournament.country == null ? '' : ', ${tournament.country}'} · ${DateFormat.yMMMd().format(tournament.startDate)} – ${DateFormat.yMMMd().format(tournament.endDate)}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              DataCell(Text(search.role)),
+              DataCell(Text(search.contact)),
+              DataCell(
+                owner
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            tooltip: AppLocalizations.of(context).editSearch,
+                            onPressed: () => _editSearch(search),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            tooltip: AppLocalizations.of(context).deleteSearch,
+                            onPressed: () => _deleteSearch(search),
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Future<void> _createSearch() async {
+    final auth = context.read<AuthController>();
+    if (auth.userId == null || auth.email == null) return;
+    final tournaments = await context
+        .read<TournamentRepository>()
+        .watchTournaments()
+        .first;
+    if (!mounted) return;
+    final result = await showDialog<TeamPlayerSearch>(
+      context: context,
+      builder: (_) => _TeamSearchDialog(
+        ownerId: auth.userId!,
+        contact: auth.email!,
+        tournaments: tournaments,
+      ),
+    );
+    if (result != null && mounted)
+      await context.read<PlayerRepository>().saveTeamSearch(result);
+  }
+
+  Future<void> _editSearch(TeamPlayerSearch search) async {
+    if (context.read<AuthController>().userId != search.ownerId) return;
+    final tournaments = await context
+        .read<TournamentRepository>()
+        .watchTournaments()
+        .first;
+    if (!mounted) return;
+    final result = await showDialog<TeamPlayerSearch>(
+      context: context,
+      builder: (_) => _TeamSearchDialog(
+        ownerId: search.ownerId,
+        contact: search.contact,
+        tournaments: tournaments,
+        initial: search,
+      ),
+    );
+    if (result != null && mounted)
+      await context.read<PlayerRepository>().saveTeamSearch(result);
+  }
+
+  Future<void> _deleteSearch(TeamPlayerSearch search) async {
+    if (context.read<AuthController>().userId != search.ownerId) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(AppLocalizations.of(context).deletePlayerSearch),
+        content: Text(
+          AppLocalizations.of(context).confirmDeleteTournamentMessage,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          FilledButton(
+            onPressed: () => context.pop(true),
+            child: Text(AppLocalizations.of(context).deleteSearch),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted)
+      await context.read<PlayerRepository>().deleteTeamSearch(search.id);
+  }
+}
+
+class _TeamSearchDialog extends StatefulWidget {
+  const _TeamSearchDialog({
+    required this.ownerId,
+    required this.contact,
+    required this.tournaments,
+    this.initial,
+  });
+  final String ownerId, contact;
+  final List<Tournament> tournaments;
+  final TeamPlayerSearch? initial;
+  @override
+  State<_TeamSearchDialog> createState() => _TeamSearchDialogState();
+}
+
+class _TeamSearchDialogState extends State<_TeamSearchDialog> {
+  String? _tournamentId;
+  String _role = 'any';
+  @override
+  void initState() {
+    super.initState();
+    _tournamentId = widget.initial?.tournamentId;
+    _role = widget.initial?.role ?? 'any';
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(
+      widget.initial == null
+          ? AppLocalizations.of(context).createPlayerSearch
+          : AppLocalizations.of(context).editPlayerSearch,
+    ),
+    content: SizedBox(
+      width: 420,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButtonFormField<String>(
+            initialValue: _tournamentId,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).tournament,
+            ),
+            items: widget.tournaments
+                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                .toList(),
+            onChanged: (value) => setState(() => _tournamentId = value),
+          ),
+          DropdownButtonFormField<String>(
+            initialValue: _role,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).role,
+            ),
+            items: const ['lead', 'second', 'third', 'skip', 'any']
+                .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                .toList(),
+            onChanged: (value) => setState(() => _role = value!),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => context.pop(),
+        child: Text(AppLocalizations.of(context).cancel),
+      ),
+      FilledButton(
+        onPressed: _tournamentId == null
+            ? null
+            : () => context.pop(
+                TeamPlayerSearch(
+                  id:
+                      widget.initial?.id ??
+                      DateTime.now().microsecondsSinceEpoch.toString(),
+                  tournamentId: _tournamentId!,
+                  role: _role,
+                  contact: widget.contact,
+                  ownerId: widget.ownerId,
+                ),
+              ),
+        child: Text(
+          widget.initial == null
+              ? AppLocalizations.of(context).createSearch
+              : AppLocalizations.of(context).saveChanges,
+        ),
+      ),
+    ],
+  );
+}
+
+class _PlayerTeamSearchDialog extends StatefulWidget {
+  const _PlayerTeamSearchDialog({
+    required this.ownerId,
+    required this.contact,
+    required this.tournaments,
+    this.initial,
+  });
+  final String ownerId, contact;
+  final List<Tournament> tournaments;
+  final PlayerTeamSearch? initial;
+  @override
+  State<_PlayerTeamSearchDialog> createState() =>
+      _PlayerTeamSearchDialogState();
+}
+
+class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
+  String? _tournamentId;
+  String _role = 'any';
+  @override
+  void initState() {
+    super.initState();
+    _tournamentId = widget.initial?.tournamentId;
+    _role = widget.initial?.role ?? 'any';
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(
+      widget.initial == null
+          ? AppLocalizations.of(context).createTeamSearch
+          : AppLocalizations.of(context).editTeamSearch,
+    ),
+    content: SizedBox(
+      width: 420,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButtonFormField<String>(
+            initialValue: _tournamentId,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).tournament,
+            ),
+            items: widget.tournaments
+                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                .toList(),
+            onChanged: (value) => setState(() => _tournamentId = value),
+          ),
+          DropdownButtonFormField<String>(
+            initialValue: _role,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).role,
+            ),
+            items: const ['lead', 'second', 'third', 'skip', 'any']
+                .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                .toList(),
+            onChanged: (value) => setState(() => _role = value!),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => context.pop(),
+        child: Text(AppLocalizations.of(context).cancel),
+      ),
+      FilledButton(
+        onPressed: _tournamentId == null
+            ? null
+            : () => context.pop(
+                PlayerTeamSearch(
+                  id:
+                      widget.initial?.id ??
+                      DateTime.now().microsecondsSinceEpoch.toString(),
+                  tournamentId: _tournamentId!,
+                  role: _role,
+                  contact: widget.contact,
+                  ownerId: widget.ownerId,
+                ),
+              ),
+        child: Text(
+          widget.initial == null
+              ? AppLocalizations.of(context).createTeamSearch
+              : AppLocalizations.of(context).saveChanges,
+        ),
+      ),
+    ],
+  );
 }
 
 class _WriteButton extends StatelessWidget {
@@ -1549,29 +2966,50 @@ class PageFrame extends StatelessWidget {
     required this.intro,
     required this.child,
     this.action,
+    this.titleAction,
   });
   final String title, intro;
   final Widget child;
   final Widget? action;
+  final Widget? titleAction;
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24),
     children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      if (titleAction != null)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(title, style: Theme.of(context).textTheme.headlineMedium),
-                Text(intro),
+                const SizedBox(width: 12),
+                titleAction!,
               ],
             ),
-          ),
-          if (action != null) action!,
-        ],
-      ),
+            Text(intro),
+          ],
+        )
+      else
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  Text(intro),
+                ],
+              ),
+            ),
+            if (action != null) action!,
+          ],
+        ),
       const SizedBox(height: 20),
       child,
     ],

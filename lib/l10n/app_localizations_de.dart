@@ -262,4 +262,101 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsComingSoon => 'Einstellungen folgen später';
+
+  @override
+  String get profileSettings => 'Profileinstellungen';
+
+  @override
+  String get newPassword => 'Neues Passwort';
+
+  @override
+  String get telephone => 'Telefon';
+
+  @override
+  String get deleteAccount => 'Konto löschen';
+
+  @override
+  String get confirmDeleteAccount => 'Konto löschen?';
+
+  @override
+  String get accountDeleteBlocked =>
+      'Entferne alle deine Turniere und Marktplatzanzeigen, bevor du dein Konto löschst.';
+
+  @override
+  String get accountDeletedError => 'Konto konnte nicht gelöscht werden.';
+
+  @override
+  String get settingsUpdateError =>
+      'Einstellungen konnten nicht gespeichert werden.';
+
+  @override
+  String get passwordsDoNotMatch => 'Die Passwörter stimmen nicht überein.';
+
+  @override
+  String get english => 'Englisch';
+
+  @override
+  String get german => 'Deutsch';
+
+  @override
+  String get teamsLookingForPlayers => 'Teams suchen Spieler.';
+
+  @override
+  String get tournamentFilter => 'Turniere';
+
+  @override
+  String get all => 'Alle';
+
+  @override
+  String selectedCount(int count) {
+    return '$count ausgewählt';
+  }
+
+  @override
+  String get teamsSearchingForPlayers => 'Teams suchen Spieler';
+
+  @override
+  String get playersSearchingForTeams => 'Spieler suchen Teams';
+
+  @override
+  String get createPlayerSearch => 'Spielersuche erstellen';
+
+  @override
+  String get createTeamSearch => 'Teamsuche erstellen';
+
+  @override
+  String get editPlayerSearch => 'Spielersuche bearbeiten';
+
+  @override
+  String get editTeamSearch => 'Teamsuche bearbeiten';
+
+  @override
+  String get deletePlayerSearch => 'Spielersuche löschen?';
+
+  @override
+  String get deleteTeamSearch => 'Teamsuche löschen?';
+
+  @override
+  String get tournament => 'Turnier';
+
+  @override
+  String get role => 'Position';
+
+  @override
+  String get tournamentUnavailable => 'Turnier nicht verfügbar';
+
+  @override
+  String get editSearch => 'Suche bearbeiten';
+
+  @override
+  String get deleteSearch => 'Suche löschen';
+
+  @override
+  String get createSearch => 'Suche erstellen';
+
+  @override
+  String get saveChanges => 'Änderungen speichern';
+
+  @override
+  String get unableToLoadData => 'Daten konnten nicht geladen werden.';
 }

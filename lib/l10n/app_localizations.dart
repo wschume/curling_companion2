@@ -577,6 +577,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings coming soon'**
   String get settingsComingSoon;
+
+  /// No description provided for @profileSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile settings'**
+  String get profileSettings;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPassword;
+
+  /// No description provided for @telephone.
+  ///
+  /// In en, this message translates to:
+  /// **'Telephone'**
+  String get telephone;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccount;
+
+  /// No description provided for @confirmDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account?'**
+  String get confirmDeleteAccount;
+
+  /// No description provided for @accountDeleteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all your tournaments and marketplace listings before deleting your account.'**
+  String get accountDeleteBlocked;
+
+  /// No description provided for @accountDeletedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete account.'**
+  String get accountDeletedError;
+
+  /// No description provided for @settingsUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update settings.'**
+  String get settingsUpdateError;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match.'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @english.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// No description provided for @german.
+  ///
+  /// In en, this message translates to:
+  /// **'German'**
+  String get german;
+
+  /// No description provided for @teamsLookingForPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Teams looking for players.'**
+  String get teamsLookingForPlayers;
+
+  /// No description provided for @tournamentFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Tournaments'**
+  String get tournamentFilter;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
+
+  /// No description provided for @teamsSearchingForPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Teams searching for players'**
+  String get teamsSearchingForPlayers;
+
+  /// No description provided for @playersSearchingForTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'Players searching for teams'**
+  String get playersSearchingForTeams;
+
+  /// No description provided for @createPlayerSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Create player search'**
+  String get createPlayerSearch;
+
+  /// No description provided for @createTeamSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Create team search'**
+  String get createTeamSearch;
+
+  /// No description provided for @editPlayerSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit player search'**
+  String get editPlayerSearch;
+
+  /// No description provided for @editTeamSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit team search'**
+  String get editTeamSearch;
+
+  /// No description provided for @deletePlayerSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete player search?'**
+  String get deletePlayerSearch;
+
+  /// No description provided for @deleteTeamSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete team search?'**
+  String get deleteTeamSearch;
+
+  /// No description provided for @tournament.
+  ///
+  /// In en, this message translates to:
+  /// **'Tournament'**
+  String get tournament;
+
+  /// No description provided for @role.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get role;
+
+  /// No description provided for @tournamentUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Tournament unavailable'**
+  String get tournamentUnavailable;
+
+  /// No description provided for @editSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit search'**
+  String get editSearch;
+
+  /// No description provided for @deleteSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete search'**
+  String get deleteSearch;
+
+  /// No description provided for @createSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Create search'**
+  String get createSearch;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get saveChanges;
+
+  /// No description provided for @unableToLoadData.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load data.'**
+  String get unableToLoadData;
 }
 
 class _AppLocalizationsDelegate

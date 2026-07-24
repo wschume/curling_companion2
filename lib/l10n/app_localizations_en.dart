@@ -258,4 +258,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsComingSoon => 'Settings coming soon';
+
+  @override
+  String get profileSettings => 'Profile settings';
+
+  @override
+  String get newPassword => 'New password';
+
+  @override
+  String get telephone => 'Telephone';
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get confirmDeleteAccount => 'Delete account?';
+
+  @override
+  String get accountDeleteBlocked =>
+      'Remove all your tournaments and marketplace listings before deleting your account.';
+
+  @override
+  String get accountDeletedError => 'Could not delete account.';
+
+  @override
+  String get settingsUpdateError => 'Could not update settings.';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match.';
+
+  @override
+  String get english => 'English';
+
+  @override
+  String get german => 'German';
+
+  @override
+  String get teamsLookingForPlayers => 'Teams looking for players.';
+
+  @override
+  String get tournamentFilter => 'Tournaments';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String selectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get teamsSearchingForPlayers => 'Teams searching for players';
+
+  @override
+  String get playersSearchingForTeams => 'Players searching for teams';
+
+  @override
+  String get createPlayerSearch => 'Create player search';
+
+  @override
+  String get createTeamSearch => 'Create team search';
+
+  @override
+  String get editPlayerSearch => 'Edit player search';
+
+  @override
+  String get editTeamSearch => 'Edit team search';
+
+  @override
+  String get deletePlayerSearch => 'Delete player search?';
+
+  @override
+  String get deleteTeamSearch => 'Delete team search?';
+
+  @override
+  String get tournament => 'Tournament';
+
+  @override
+  String get role => 'Role';
+
+  @override
+  String get tournamentUnavailable => 'Tournament unavailable';
+
+  @override
+  String get editSearch => 'Edit search';
+
+  @override
+  String get deleteSearch => 'Delete search';
+
+  @override
+  String get createSearch => 'Create search';
+
+  @override
+  String get saveChanges => 'Save changes';
+
+  @override
+  String get unableToLoadData => 'Unable to load data.';
 }

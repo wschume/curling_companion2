@@ -11,6 +11,13 @@ abstract interface class AuthService {
   String? get currentUserId;
   Future<void> signIn(String email, String password);
   Future<void> register(String email, String password);
+  Future<void> updateEmail(String email);
+  Future<void> updatePassword(String password);
+  Future<void> updateTelephone(String telephone);
+  Future<void> deleteAccount();
+  Future<String?> loadLanguage();
+  Future<String?> loadTelephone();
+  Future<void> updateLanguage(String languageCode);
   Future<void> signOut();
 }
 
@@ -35,6 +42,34 @@ class FirebaseAuthService implements AuthService {
   @override
   Future<void> register(String email, String password) =>
       _auth.createUserWithEmailAndPassword(email: email, password: password);
+
+  @override
+  Future<void> updateEmail(String email) => _auth.currentUser!.verifyBeforeUpdateEmail(email);
+
+  @override
+  Future<void> updatePassword(String password) =>
+      _auth.currentUser!.updatePassword(password);
+
+  @override
+  Future<void> updateTelephone(String telephone) => FirebaseFirestore.instance
+      .collection('users').doc(_auth.currentUser!.uid).set(
+        {'telephone': telephone}, SetOptions(merge: true));
+
+  @override
+  Future<void> deleteAccount() => _auth.currentUser!.delete();
+
+  @override
+  Future<String?> loadLanguage() async => (await FirebaseFirestore.instance
+      .collection('users').doc(_auth.currentUser!.uid).get()).data()?['language'] as String?;
+
+  @override
+  Future<void> updateLanguage(String languageCode) => FirebaseFirestore.instance
+      .collection('users').doc(_auth.currentUser!.uid).set(
+        {'language': languageCode}, SetOptions(merge: true));
+
+  @override
+  Future<String?> loadTelephone() async => (await FirebaseFirestore.instance
+      .collection('users').doc(_auth.currentUser!.uid).get()).data()?['telephone'] as String?;
 
   @override
   Future<void> signOut() => _auth.signOut();
@@ -64,6 +99,29 @@ class LocalAuthService implements AuthService {
       signIn(email, password);
 
   @override
+  Future<void> updateEmail(String email) async {
+    _email = email;
+    _controller.add(_email);
+  }
+
+  @override
+  Future<void> updatePassword(String password) async {}
+
+  @override
+  Future<void> updateTelephone(String telephone) async {}
+
+  @override
+  Future<void> deleteAccount() => signOut();
+
+  @override
+  Future<String?> loadLanguage() async => null;
+
+  @override
+  Future<void> updateLanguage(String languageCode) async {}
+  @override
+  Future<String?> loadTelephone() async => null;
+
+  @override
   Future<void> signOut() async {
     _email = null;
     _controller.add(null);
@@ -73,6 +131,7 @@ class LocalAuthService implements AuthService {
 abstract interface class MarketplaceRepository {
   Stream<List<MarketplaceListing>> watchListings();
   Future<void> save(MarketplaceListing listing);
+  Future<void> delete(String listingId);
 }
 
 abstract interface class TournamentRepository {
@@ -84,6 +143,12 @@ abstract interface class TournamentRepository {
 abstract interface class PlayerRepository {
   Stream<List<PlayerAvailability>> watchPlayers(String eventId);
   Future<void> save(PlayerAvailability player);
+  Stream<List<TeamPlayerSearch>> watchTeamSearches();
+  Future<void> saveTeamSearch(TeamPlayerSearch search);
+  Future<void> deleteTeamSearch(String searchId);
+  Stream<List<PlayerTeamSearch>> watchPlayerTeamSearches();
+  Future<void> savePlayerTeamSearch(PlayerTeamSearch search);
+  Future<void> deletePlayerTeamSearch(String searchId);
 }
 
 class FirestoreMarketplaceRepository implements MarketplaceRepository {
@@ -105,6 +170,10 @@ class FirestoreMarketplaceRepository implements MarketplaceRepository {
       .collection('marketplaceListings')
       .doc(listing.id)
       .set(listing.toMap());
+
+  @override
+  Future<void> delete(String listingId) =>
+      _firestore.collection('marketplaceListings').doc(listingId).delete();
 }
 
 class FirestoreTournamentRepository implements TournamentRepository {
@@ -152,31 +221,101 @@ class FirestorePlayerRepository implements PlayerRepository {
       .collection('playerAvailability')
       .doc(player.id)
       .set(player.toMap());
+
+  @override
+  Stream<List<TeamPlayerSearch>> watchTeamSearches() => _firestore
+      .collection('teamPlayerSearches')
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.docs
+            .map((doc) => TeamPlayerSearchMapper.fromMap(doc.data()))
+            .toList(),
+      );
+
+  @override
+  Future<void> saveTeamSearch(TeamPlayerSearch search) => _firestore
+      .collection('teamPlayerSearches')
+      .doc(search.id)
+      .set(search.toMap());
+
+  @override
+  Future<void> deleteTeamSearch(String searchId) =>
+      _firestore.collection('teamPlayerSearches').doc(searchId).delete();
+
+  @override
+  Stream<List<PlayerTeamSearch>> watchPlayerTeamSearches() => _firestore
+      .collection('playerTeamSearches')
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => PlayerTeamSearchMapper.fromMap(doc.data()))
+          .toList());
+
+  @override
+  Future<void> savePlayerTeamSearch(PlayerTeamSearch search) => _firestore
+      .collection('playerTeamSearches')
+      .doc(search.id)
+      .set(search.toMap());
+
+  @override
+  Future<void> deletePlayerTeamSearch(String searchId) =>
+      _firestore.collection('playerTeamSearches').doc(searchId).delete();
 }
 
 class MemoryMarketplaceRepository implements MarketplaceRepository {
+  final _changes = StreamController<List<MarketplaceListing>>.broadcast();
   final _items = <MarketplaceListing>[
-    const MarketplaceListing(
+    MarketplaceListing(
       id: '1',
       title: 'Junior curling shoes',
       description: 'Placeholder listing',
       price: 45,
+      currency: 'EUR',
+      category: 'shoes',
+      location: 'Berlin',
+      sellerName: 'demo@example.com',
+      sellerContact: 'demo@example.com',
+      listedAt: _demoDate,
       ownerId: 'demo',
     ),
-    const MarketplaceListing(
+    MarketplaceListing(
       id: '2',
       title: 'Balanced curling broom',
       description: 'Placeholder listing',
       price: 80,
+      currency: 'EUR',
+      category: 'brooms',
+      location: 'Berlin',
+      sellerName: 'demo@example.com',
+      sellerContact: 'demo@example.com',
+      listedAt: _demoDate,
       ownerId: 'demo',
     ),
   ];
   @override
-  Stream<List<MarketplaceListing>> watchListings() =>
-      Stream.value(List.unmodifiable(_items));
+  Stream<List<MarketplaceListing>> watchListings() async* {
+    yield List.unmodifiable(_items);
+    yield* _changes.stream;
+  }
+
   @override
-  Future<void> save(MarketplaceListing listing) async => _items.add(listing);
+  Future<void> save(MarketplaceListing listing) async {
+    final index = _items.indexWhere((item) => item.id == listing.id);
+    if (index == -1) {
+      _items.add(listing);
+    } else {
+      _items[index] = listing;
+    }
+    _changes.add(List.unmodifiable(_items));
+  }
+
+  @override
+  Future<void> delete(String listingId) async {
+    _items.removeWhere((item) => item.id == listingId);
+    _changes.add(List.unmodifiable(_items));
+  }
 }
+
+final _demoDate = DateTime(2025, 1, 1);
 
 class MemoryTournamentRepository implements TournamentRepository {
   final _items = <Tournament>[
@@ -233,6 +372,12 @@ class MemoryTournamentRepository implements TournamentRepository {
 }
 
 class MemoryPlayerRepository implements PlayerRepository {
+  final _teamSearchChanges =
+      StreamController<List<TeamPlayerSearch>>.broadcast();
+  final _teamSearches = <TeamPlayerSearch>[];
+  final _playerTeamSearchChanges =
+      StreamController<List<PlayerTeamSearch>>.broadcast();
+  final _playerTeamSearches = <PlayerTeamSearch>[];
   final _items = <PlayerAvailability>[
     const PlayerAvailability(
       id: 'player-1',
@@ -254,4 +399,50 @@ class MemoryPlayerRepository implements PlayerRepository {
       Stream.value(_items.where((item) => item.eventId == eventId).toList());
   @override
   Future<void> save(PlayerAvailability player) async => _items.add(player);
+
+  @override
+  Stream<List<TeamPlayerSearch>> watchTeamSearches() async* {
+    yield List.unmodifiable(_teamSearches);
+    yield* _teamSearchChanges.stream;
+  }
+
+  @override
+  Future<void> saveTeamSearch(TeamPlayerSearch search) async {
+    final index = _teamSearches.indexWhere((item) => item.id == search.id);
+    if (index == -1) {
+      _teamSearches.add(search);
+    } else {
+      _teamSearches[index] = search;
+    }
+    _teamSearchChanges.add(List.unmodifiable(_teamSearches));
+  }
+
+  @override
+  Future<void> deleteTeamSearch(String searchId) async {
+    _teamSearches.removeWhere((item) => item.id == searchId);
+    _teamSearchChanges.add(List.unmodifiable(_teamSearches));
+  }
+
+  @override
+  Stream<List<PlayerTeamSearch>> watchPlayerTeamSearches() async* {
+    yield List.unmodifiable(_playerTeamSearches);
+    yield* _playerTeamSearchChanges.stream;
+  }
+
+  @override
+  Future<void> savePlayerTeamSearch(PlayerTeamSearch search) async {
+    final index = _playerTeamSearches.indexWhere((item) => item.id == search.id);
+    if (index == -1) {
+      _playerTeamSearches.add(search);
+    } else {
+      _playerTeamSearches[index] = search;
+    }
+    _playerTeamSearchChanges.add(List.unmodifiable(_playerTeamSearches));
+  }
+
+  @override
+  Future<void> deletePlayerTeamSearch(String searchId) async {
+    _playerTeamSearches.removeWhere((item) => item.id == searchId);
+    _playerTeamSearchChanges.add(List.unmodifiable(_playerTeamSearches));
+  }
 }

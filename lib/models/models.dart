@@ -9,6 +9,12 @@ class MarketplaceListing with MarketplaceListingMappable {
     required this.title,
     required this.description,
     required this.price,
+    this.currency = 'EUR',
+    this.category = 'other',
+    this.location = '',
+    this.sellerName = '',
+    this.sellerContact = '',
+    this.listedAt,
     required this.ownerId,
   });
 
@@ -16,6 +22,12 @@ class MarketplaceListing with MarketplaceListingMappable {
   final String title;
   final String description;
   final double price;
+  final String currency;
+  final String category;
+  final String location;
+  final String sellerName;
+  final String sellerContact;
+  final DateTime? listedAt;
   final String ownerId;
 }
 
@@ -69,4 +81,38 @@ class PlayerAvailability with PlayerAvailabilityMappable {
   final String userId;
   final String displayName;
   final String note;
+}
+
+@MappableClass()
+class TeamPlayerSearch with TeamPlayerSearchMappable {
+  const TeamPlayerSearch({
+    required this.id,
+    required this.tournamentId,
+    required this.role,
+    required this.contact,
+    required this.ownerId,
+  });
+
+  final String id;
+  final String tournamentId;
+  final String role;
+  final String contact;
+  final String ownerId;
+}
+
+@MappableClass()
+class PlayerTeamSearch with PlayerTeamSearchMappable {
+  const PlayerTeamSearch({
+    required this.id,
+    required this.tournamentId,
+    required this.role,
+    required this.contact,
+    required this.ownerId,
+  });
+
+  final String id;
+  final String tournamentId;
+  final String role;
+  final String contact;
+  final String ownerId;
 }
