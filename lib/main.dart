@@ -1,11 +1,13 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, unnecessary_underscores, use_null_aware_elements
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -1646,13 +1648,15 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
       for (final image in _newImages) {
         final Uint8List? data = image.bytes;
         if (data == null) continue;
-        final path = 'marketplaceListings/${widget.ownerId}/$id/${DateTime.now().microsecondsSinceEpoch}_${_safeFileName(image.name)}';
-        final reference = FirebaseStorage.instance.ref(path);
-        await reference.putData(
-          data,
-          SettableMetadata(contentType: _imageContentType(image.extension)),
-        );
-        imageUrls.add(await reference.getDownloadURL());
+        final result = await FirebaseFunctions.instance
+            .httpsCallable("uploadMarketplaceImage")
+            .call({
+              "listingId": id,
+              "fileName": _safeFileName(image.name),
+              "contentType": _imageContentType(image.extension),
+              "dataBase64": base64Encode(data),
+            });
+        imageUrls.add((result.data as Map)["downloadUrl"] as String);
       }
       for (final url in _removedImageUrls) {
         try {
@@ -1998,7 +2002,7 @@ class _TournamentFilters extends StatelessWidget {
         child: Wrap(
           spacing: 16,
           runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.start,
           children: [
             _SearchableMultiSelectFilter<Tournament>(
               label: l10n.tournamentFilter,
@@ -2009,7 +2013,7 @@ class _TournamentFilters extends StatelessWidget {
               onToggle: onTournamentToggled,
             ),
             _SearchableMultiSelectFilter<String>(
-              label: l10n.filterByLocation,
+              label: "Location",
               items: locations,
               selectedItems: selectedLocations,
               itemValue: (location) => location,
@@ -2020,10 +2024,16 @@ class _TournamentFilters extends StatelessWidget {
               value: filterDateRange,
               onChanged: onDateRangeChanged,
             ),
-            TextButton.icon(
-              onPressed: onClear,
-              icon: const Icon(Icons.clear),
-              label: Text(l10n.clearFilters),
+            SizedBox(
+              width: 140,
+              height: 56,
+              child: Center(
+                child: TextButton.icon(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.clear),
+                  label: Text(l10n.clearFilters),
+                ),
+              ),
             ),
           ],
         ),
@@ -2145,19 +2155,36 @@ class _FilterDateRangeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return OutlinedButton.icon(
-      onPressed: () async {
-        final range = await showDateRangePicker(
-          context: context,
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-          initialDateRange: value,
-        );
-        if (range != null) onChanged(range);
-      },
-      icon: const Icon(Icons.date_range_outlined),
-      label: Text(value == null ? "${l10n.filterStartDate} – ${l10n.filterEndDate}" : "${_formatDate(context, value!.start)} – ${_formatDate(context, value!.end)}"),
+    final label = value == null
+        ? "Date range"
+        : "${_formatDate(context, value!.start)} – ${_formatDate(context, value!.end)}";
+    return SizedBox(
+      width: 220,
+      height: 56,
+      child: InkWell(
+        onTap: () async {
+          final range = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+            initialDateRange: value,
+            builder: (context, child) => Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640, maxHeight: 720),
+                child: child!,
+              ),
+            ),
+          );
+          if (range != null) onChanged(range);
+        },
+        child: InputDecorator(
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            suffixIcon: Icon(Icons.date_range_outlined),
+          ),
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ),
     );
   }
 }
@@ -2716,23 +2743,15 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
                         if (!_selectedTournamentIds.add(id)) _selectedTournamentIds.remove(id);
                       }),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.role, style: Theme.of(context).textTheme.labelLarge),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _roles.map((role) => FilterChip(
-                            label: Text(role),
-                            selected: _selectedRoles.contains(role),
-                            onSelected: (selected) => setState(() {
-                              if (selected) { _selectedRoles.add(role); } else { _selectedRoles.remove(role); }
-                            }),
-                          )).toList(),
-                        ),
-                      ],
+                    _SearchableMultiSelectFilter<String>(
+                      label: l10n.role,
+                      items: _roles,
+                      selectedItems: _selectedRoles,
+                      itemValue: (role) => role,
+                      itemLabel: (role) => role,
+                      onToggle: (role) => setState(() {
+                        if (!_selectedRoles.add(role)) _selectedRoles.remove(role);
+                      }),
                     ),
                   ],
                 ),
@@ -3280,7 +3299,7 @@ class _WriteButton extends StatelessWidget {
         );
       }
     },
-    child: Text(label),
+    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
   );
 }
 
