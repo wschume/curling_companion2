@@ -1,6 +1,68 @@
-# curling_companion
+# Curling Companion
 
-A new Flutter project.
+Public Flutter web first draft for curling marketplaces, tournaments, and event player discovery.
+
+## Firebase setup
+
+1. Install FlutterFire CLI and run `flutterfire configure`.
+2. Replace the placeholder `lib/firebase_options.dart` with the generated file.
+3. Copy `.firebaserc.example` to `.firebaserc` and set the Firebase project ID.
+4. Enable Email/Password authentication, Cloud Firestore, and Cloud Storage in Firebase.
+
+### Cloud Storage CORS
+
+Marketplace images are loaded directly by the Flutter web client. Apply the
+included CORS configuration to the Firebase Storage bucket once (requires the
+Google Cloud CLI and Storage Admin access):
+
+```sh
+gcloud storage buckets update gs://curling-companion-28e7a.firebasestorage.app \
+  --cors-file=storage.cors.json
+```
+
+The configuration permits browser `GET` requests from any origin. This is
+appropriate for marketplace images because they are intentionally public.
+
+Without Firebase configuration, the app deliberately uses placeholder in-memory data so the UI and tests can run locally.
+
+## Checks
+
+```sh
+dart run build_runner build --delete-conflicting-outputs
+flutter analyze
+flutter test
+flutter build web
+```
+
+The self-hosted GitHub Actions workflow validates every push and pull request, and deploys Hosting plus Firestore rules from `main`. Configure `FIREBASE_PROJECT_ID` and `FIREBASE_TOKEN` repository secrets before enabling deployment.
+
+## Local deployment
+
+Install and authenticate the Firebase CLI, then run the same build/deploy flow locally:
+
+```sh
+npm install -g firebase-tools
+firebase login
+./deploy_local.sh --project YOUR_FIREBASE_PROJECT_ID
+```
+
+Alternatively, copy `.env.example` to `.env` and set `FIREBASE_PROJECT_ID`. The deployment script loads `.env` automatically; explicitly exported shell variables take precedence. The `.env` file is ignored by Git.
+
+By default, the script resolves dependencies, generates mappers, builds the web application, and deploys Hosting only. To use a CI-style token instead of the local Firebase login:
+
+```sh
+export FIREBASE_TOKEN="your-token"
+./deploy_local.sh --project YOUR_FIREBASE_PROJECT_ID
+```
+
+You may also put `FIREBASE_TOKEN` in `.env` for local-only use. Never commit that file.
+
+To run analysis and tests before deploying, add `--run-tests`. To deploy Firestore rules and indexes, Cloud Storage rules, and Hosting, add `--include-firestore`:
+
+```sh
+./deploy_local.sh --run-tests --include-firestore
+```
+
 
 ## Getting Started
 
