@@ -1708,14 +1708,9 @@ class TournamentsPage extends StatefulWidget {
 }
 
 class _TournamentsPageState extends State<TournamentsPage> {
-  final _locationController = TextEditingController();
+  final _selectedLocations = <String>{};
   final _selectedTournamentIds = <String>{};
-  DateTime? _filterStartDate;
-  DateTime? _filterEndDate;
-  String _futureSortField = 'startDate';
-  bool _futureSortAscending = true;
-  String _pastSortField = 'startDate';
-  bool _pastSortAscending = true;
+  DateTimeRange? _filterDateRange;
   bool _showPastTournaments = false;
   bool _showMyTournaments = false;
 
@@ -1727,11 +1722,6 @@ class _TournamentsPageState extends State<TournamentsPage> {
     }
   }
 
-  @override
-  void dispose() {
-    _locationController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1784,62 +1774,44 @@ class _TournamentsPageState extends State<TournamentsPage> {
 
     final now = DateTime.now();
     final auth = context.read<AuthController>();
-    final all = _filtered(
-      snapshot.data!,
-      organizerId: _showMyTournaments ? auth.userId : null,
-    );
-    final focused = all
-        .where(
-          (item) =>
-              _selectedTournamentIds.isEmpty ||
-              _selectedTournamentIds.contains(item.id),
-        )
-        .toList();
-    final future = _sorted(
-      focused.where((item) => !item.endDate.isBefore(now)),
-      field: _futureSortField,
-      ascending: _futureSortAscending,
-    );
-    final past = _sorted(
-      focused.where((item) => item.endDate.isBefore(now)),
-      field: _pastSortField,
-      ascending: _pastSortAscending,
-    );
+    final organizerId = _showMyTournaments ? auth.userId : null;
+    final futureCandidates = snapshot.data!.where((item) => !item.endDate.isBefore(now) && (organizerId == null || item.organizerId == organizerId)).toList();
+    final future = _filtered(futureCandidates)
+        .where((item) => _selectedTournamentIds.isEmpty || _selectedTournamentIds.contains(item.id))
+        .toList()
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+    final past = snapshot.data!
+        .where((item) => item.endDate.isBefore(now) && (organizerId == null || item.organizerId == organizerId))
+        .toList()
+      ..sort((a, b) => b.startDate.compareTo(a.startDate));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _TournamentFilters(
-          tournaments: snapshot.data!,
+          tournaments: futureCandidates,
           selectedTournamentIds: _selectedTournamentIds,
-          locationController: _locationController,
-          filterStartDate: _filterStartDate,
-          filterEndDate: _filterEndDate,
+          selectedLocations: _selectedLocations,
+          filterDateRange: _filterDateRange,
           onTournamentToggled: (id) => setState(() {
-            if (!_selectedTournamentIds.add(id))
-              _selectedTournamentIds.remove(id);
+            if (!_selectedTournamentIds.add(id)) _selectedTournamentIds.remove(id);
           }),
-          onLocationChanged: (_) => setState(() {}),
-          onStartDateChanged: (date) => setState(() => _filterStartDate = date),
-          onEndDateChanged: (date) => setState(() => _filterEndDate = date),
-          onClear: () {
-            _locationController.clear();
-            setState(() {
-              _selectedTournamentIds.clear();
-              _filterStartDate = null;
-              _filterEndDate = null;
-            });
-          },
+          onLocationToggled: (location) => setState(() {
+            if (!_selectedLocations.add(location)) _selectedLocations.remove(location);
+          }),
+          onDateRangeChanged: (range) => setState(() => _filterDateRange = range),
+          onClear: () => setState(() {
+            _selectedTournamentIds.clear();
+            _selectedLocations.clear();
+            _filterDateRange = null;
+          }),
         ),
         if (auth.isSignedIn) ...[
           const SizedBox(height: 12),
           FilterChip(
             selected: _showMyTournaments,
             avatar: const Icon(Icons.person_outline),
-            label: Text(
-              _showMyTournaments ? l10n.allTournaments : l10n.myTournaments,
-            ),
-            onSelected: (selected) =>
-                setState(() => _showMyTournaments = selected),
+            label: Text(_showMyTournaments ? l10n.allTournaments : l10n.myTournaments),
+            onSelected: (selected) => setState(() => _showMyTournaments = selected),
           ),
         ],
         const SizedBox(height: 24),
@@ -1848,12 +1820,9 @@ class _TournamentsPageState extends State<TournamentsPage> {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
-        _TournamentTable(
+        _TournamentFeed(
           tournaments: future,
           emptyText: l10n.noFutureTournaments,
-          sortField: _futureSortField,
-          sortAscending: _futureSortAscending,
-          onSort: _sortFuture,
           canEdit: context.read<AuthController>().isSignedIn,
           onEdit: _editTournament,
           onDelete: _deleteTournament,
@@ -1880,12 +1849,9 @@ class _TournamentsPageState extends State<TournamentsPage> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
-          _TournamentTable(
+          _TournamentFeed(
             tournaments: past,
             emptyText: l10n.noPastTournaments,
-            sortField: _pastSortField,
-            sortAscending: _pastSortAscending,
-            onSort: _sortPast,
             canEdit: context.read<AuthController>().isSignedIn,
             onEdit: _editTournament,
             tournamentsWithPlayerSearches: tournamentsWithPlayerSearches,
@@ -1897,68 +1863,12 @@ class _TournamentsPageState extends State<TournamentsPage> {
   }
 
   List<Tournament> _filtered(List<Tournament> source, {String? organizerId}) {
-    final location = _locationController.text.trim().toLowerCase();
-    final result = source.where((tournament) {
-      final searchableLocation =
-          '${tournament.club ?? ''} ${tournament.city} ${tournament.country ?? ''}'
-              .toLowerCase();
-      final matchesLocation =
-          location.isEmpty || searchableLocation.contains(location);
-      final matchesStart =
-          _filterStartDate == null ||
-          !tournament.startDate.isBefore(_filterStartDate!);
-      final matchesEnd =
-          _filterEndDate == null ||
-          !tournament.endDate.isAfter(_filterEndDate!);
-      final matchesOrganizer =
-          organizerId == null || tournament.organizerId == organizerId;
-      return matchesLocation && matchesStart && matchesEnd && matchesOrganizer;
+    return source.where((tournament) {
+      final matchesLocation = _selectedLocations.isEmpty || _selectedLocations.contains(_tournamentLocation(tournament));
+      final matchesDateRange = _filterDateRange == null || (!tournament.startDate.isBefore(_filterDateRange!.start) && !tournament.endDate.isAfter(_filterDateRange!.end));
+      final matchesOrganizer = organizerId == null || tournament.organizerId == organizerId;
+      return matchesLocation && matchesDateRange && matchesOrganizer;
     }).toList();
-    return result;
-  }
-
-  List<Tournament> _sorted(
-    Iterable<Tournament> source, {
-    required String field,
-    required bool ascending,
-  }) {
-    final result = source.toList();
-    result.sort((a, b) {
-      final left = _sortValue(a, field);
-      final right = _sortValue(b, field);
-      final comparison = left.compareTo(right);
-      return ascending ? comparison : -comparison;
-    });
-    return result;
-  }
-
-  String _sortValue(Tournament tournament, String field) => switch (field) {
-    'endDate' => tournament.endDate.toIso8601String(),
-    'signupDeadline' => tournament.signupDeadline?.toIso8601String() ?? '',
-    'name' => tournament.name.toLowerCase(),
-    _ => tournament.startDate.toIso8601String(),
-  };
-
-  void _sortFuture(String field) {
-    setState(() {
-      if (_futureSortField == field) {
-        _futureSortAscending = !_futureSortAscending;
-      } else {
-        _futureSortField = field;
-        _futureSortAscending = true;
-      }
-    });
-  }
-
-  void _sortPast(String field) {
-    setState(() {
-      if (_pastSortField == field) {
-        _pastSortAscending = !_pastSortAscending;
-      } else {
-        _pastSortField = field;
-        _pastSortAscending = true;
-      }
-    });
   }
 
   Future<void> _createTournament() async {
@@ -2048,34 +1958,40 @@ class _TournamentsPageState extends State<TournamentsPage> {
   }
 }
 
+String _tournamentLocation(Tournament tournament) =>
+    "${tournament.city}${tournament.country?.isNotEmpty ?? false ? ", ${tournament.country}" : ""}";
+
 class _TournamentFilters extends StatelessWidget {
   const _TournamentFilters({
     required this.tournaments,
     required this.selectedTournamentIds,
-    required this.locationController,
-    required this.filterStartDate,
-    required this.filterEndDate,
+    required this.selectedLocations,
+    required this.filterDateRange,
     required this.onTournamentToggled,
-    required this.onLocationChanged,
-    required this.onStartDateChanged,
-    required this.onEndDateChanged,
+    required this.onLocationToggled,
+    required this.onDateRangeChanged,
     required this.onClear,
   });
 
   final List<Tournament> tournaments;
   final Set<String> selectedTournamentIds;
-  final TextEditingController locationController;
-  final DateTime? filterStartDate;
-  final DateTime? filterEndDate;
+  final Set<String> selectedLocations;
+  final DateTimeRange? filterDateRange;
   final ValueChanged<String> onTournamentToggled;
-  final ValueChanged<String> onLocationChanged;
-  final ValueChanged<DateTime?> onStartDateChanged;
-  final ValueChanged<DateTime?> onEndDateChanged;
+  final ValueChanged<String> onLocationToggled;
+  final ValueChanged<DateTimeRange?> onDateRangeChanged;
   final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final tournamentItems = selectedLocations.isEmpty
+        ? tournaments
+        : tournaments.where((tournament) => selectedLocations.contains(_tournamentLocation(tournament))).toList();
+    final locationItems = selectedTournamentIds.isEmpty
+        ? tournaments
+        : tournaments.where((tournament) => selectedTournamentIds.contains(tournament.id)).toList();
+    final locations = locationItems.map(_tournamentLocation).toSet().toList()..sort();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -2084,31 +2000,25 @@ class _TournamentFilters extends StatelessWidget {
           runSpacing: 12,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _TournamentMultiSelectFilter(
-              tournaments: tournaments,
-              selectedIds: selectedTournamentIds,
+            _SearchableMultiSelectFilter<Tournament>(
+              label: l10n.tournamentFilter,
+              items: tournamentItems,
+              selectedItems: selectedTournamentIds,
+              itemValue: (tournament) => tournament.id,
+              itemLabel: (tournament) => tournament.name,
               onToggle: onTournamentToggled,
             ),
-            SizedBox(
-              width: 220,
-              child: TextField(
-                controller: locationController,
-                onChanged: onLocationChanged,
-                decoration: InputDecoration(
-                  labelText: l10n.filterByLocation,
-                  prefixIcon: const Icon(Icons.location_on_outlined),
-                ),
-              ),
+            _SearchableMultiSelectFilter<String>(
+              label: l10n.filterByLocation,
+              items: locations,
+              selectedItems: selectedLocations,
+              itemValue: (location) => location,
+              itemLabel: (location) => location,
+              onToggle: onLocationToggled,
             ),
-            _FilterDateButton(
-              label: l10n.filterStartDate,
-              value: filterStartDate,
-              onChanged: onStartDateChanged,
-            ),
-            _FilterDateButton(
-              label: l10n.filterEndDate,
-              value: filterEndDate,
-              onChanged: onEndDateChanged,
+            _FilterDateRangeButton(
+              value: filterDateRange,
+              onChanged: onDateRangeChanged,
             ),
             TextButton.icon(
               onPressed: onClear,
@@ -2122,26 +2032,33 @@ class _TournamentFilters extends StatelessWidget {
   }
 }
 
-class _TournamentMultiSelectFilter extends StatefulWidget {
-  const _TournamentMultiSelectFilter({
-    required this.tournaments,
-    required this.selectedIds,
+class _SearchableMultiSelectFilter<T> extends StatefulWidget {
+  const _SearchableMultiSelectFilter({
+    required this.label,
+    required this.items,
+    required this.selectedItems,
+    required this.itemValue,
+    required this.itemLabel,
     required this.onToggle,
   });
 
-  final List<Tournament> tournaments;
-  final Set<String> selectedIds;
+  final String label;
+  final List<T> items;
+  final Set<String> selectedItems;
+  final String Function(T) itemValue;
+  final String Function(T) itemLabel;
   final ValueChanged<String> onToggle;
 
   @override
-  State<_TournamentMultiSelectFilter> createState() =>
-      _TournamentMultiSelectFilterState();
+  State<_SearchableMultiSelectFilter<T>> createState() =>
+      _SearchableMultiSelectFilterState<T>();
 }
 
-class _TournamentMultiSelectFilterState
-    extends State<_TournamentMultiSelectFilter> {
+class _SearchableMultiSelectFilterState<T>
+    extends State<_SearchableMultiSelectFilter<T>> {
   final _link = LayerLink();
   OverlayEntry? _overlay;
+  String _query = "";
 
   @override
   void dispose() {
@@ -2150,17 +2067,15 @@ class _TournamentMultiSelectFilterState
   }
 
   void _toggle() => _overlay == null ? _open() : _close();
+  void _close() { _overlay?.remove(); _overlay = null; }
 
   void _open() {
+    _query = "";
     _overlay = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: _close,
-            ),
-          ),
+      builder: (context) {
+        final items = widget.items.where((item) => widget.itemLabel(item).toLowerCase().contains(_query.toLowerCase())).toList();
+        return Stack(children: [
+          Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _close)),
           CompositedTransformFollower(
             link: _link,
             targetAnchor: Alignment.bottomLeft,
@@ -2169,43 +2084,42 @@ class _TournamentMultiSelectFilterState
             child: Material(
               elevation: 6,
               child: SizedBox(
-                width: 220,
+                width: 280,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 260),
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: widget.tournaments
-                        .map(
-                          (tournament) => CheckboxListTile(
+                  constraints: const BoxConstraints(maxHeight: 340),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: TextField(
+                        autofocus: true,
+                        onChanged: (value) { _query = value; _overlay?.markNeedsBuild(); },
+                        decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: widget.label),
+                      ),
+                    ),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: items.map((item) {
+                          final value = widget.itemValue(item);
+                          return CheckboxListTile(
                             dense: true,
                             controlAffinity: ListTileControlAffinity.leading,
-                            value: widget.selectedIds.contains(tournament.id),
-                            title: Text(
-                              tournament.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            onChanged: (_) {
-                              widget.onToggle(tournament.id);
-                              _overlay?.markNeedsBuild();
-                            },
-                          ),
-                        )
-                        .toList(),
-                  ),
+                            value: widget.selectedItems.contains(value),
+                            title: Text(widget.itemLabel(item), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            onChanged: (_) { widget.onToggle(value); _overlay?.markNeedsBuild(); },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ]),
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ]);
+      },
     );
     Overlay.of(context, rootOverlay: true).insert(_overlay!);
-  }
-
-  void _close() {
-    _overlay?.remove();
-    _overlay = null;
   }
 
   @override
@@ -2216,71 +2130,42 @@ class _TournamentMultiSelectFilterState
       child: InkWell(
         onTap: _toggle,
         child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context).tournamentFilter,
-            border: OutlineInputBorder(),
-            suffixIcon: Icon(Icons.arrow_drop_down),
-          ),
-          child: Text(
-            widget.selectedIds.isEmpty
-                ? AppLocalizations.of(context).all
-                : AppLocalizations.of(
-                    context,
-                  ).selectedCount(widget.selectedIds.length),
-          ),
+          decoration: InputDecoration(labelText: widget.label, border: const OutlineInputBorder(), suffixIcon: const Icon(Icons.arrow_drop_down)),
+          child: Text(widget.selectedItems.isEmpty ? AppLocalizations.of(context).all : AppLocalizations.of(context).selectedCount(widget.selectedItems.length)),
         ),
       ),
     ),
   );
 }
 
-class _FilterDateButton extends StatelessWidget {
-  const _FilterDateButton({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-  final String label;
-  final DateTime? value;
-  final ValueChanged<DateTime?> onChanged;
+class _FilterDateRangeButton extends StatelessWidget {
+  const _FilterDateRangeButton({required this.value, required this.onChanged});
+  final DateTimeRange? value;
+  final ValueChanged<DateTimeRange?> onChanged;
 
   @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-    onPressed: () async {
-      final selected = await showDatePicker(
-        context: context,
-        firstDate: DateTime(2000),
-        lastDate: DateTime(2100),
-        initialDate: value ?? DateTime.now(),
-      );
-      if (selected != null) onChanged(selected);
-    },
-    icon: const Icon(Icons.calendar_today_outlined),
-    label: Text(
-      value == null ? label : '$label: ${_formatDate(context, value!)}',
-    ),
-  );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return OutlinedButton.icon(
+      onPressed: () async {
+        final range = await showDateRangePicker(
+          context: context,
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+          initialDateRange: value,
+        );
+        if (range != null) onChanged(range);
+      },
+      icon: const Icon(Icons.date_range_outlined),
+      label: Text(value == null ? "${l10n.filterStartDate} – ${l10n.filterEndDate}" : "${_formatDate(context, value!.start)} – ${_formatDate(context, value!.end)}"),
+    );
+  }
 }
 
-class _TournamentTable extends StatefulWidget {
-  const _TournamentTable({
-    required this.tournaments,
-    required this.emptyText,
-    required this.sortField,
-    required this.sortAscending,
-    required this.onSort,
-    required this.canEdit,
-    required this.onEdit,
-    required this.tournamentsWithPlayerSearches,
-    required this.tournamentsWithTeamSearches,
-    this.onDelete,
-  });
-
+class _TournamentFeed extends StatelessWidget {
+  const _TournamentFeed({required this.tournaments, required this.emptyText, required this.canEdit, required this.onEdit, required this.tournamentsWithPlayerSearches, required this.tournamentsWithTeamSearches, this.onDelete});
   final List<Tournament> tournaments;
   final String emptyText;
-  final String sortField;
-  final bool sortAscending;
-  final ValueChanged<String> onSort;
   final bool canEdit;
   final ValueChanged<Tournament> onEdit;
   final Set<String> tournamentsWithPlayerSearches;
@@ -2288,194 +2173,94 @@ class _TournamentTable extends StatefulWidget {
   final ValueChanged<Tournament>? onDelete;
 
   @override
-  State<_TournamentTable> createState() => _TournamentTableState();
-}
-
-class _TournamentTableState extends State<_TournamentTable> {
-  final _horizontalController = ScrollController();
-
-  @override
-  void dispose() {
-    _horizontalController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.tournaments.isEmpty) return Text(widget.emptyText);
+    if (tournaments.isEmpty) return Text(emptyText);
     final l10n = AppLocalizations.of(context);
     final auth = context.read<AuthController>();
-    final sortIndex = {
-      'name': 0,
-      'startDate': 3,
-      'endDate': 4,
-      'signupDeadline': 5,
-    }[widget.sortField];
-    return Scrollbar(
-      controller: _horizontalController,
-      thumbVisibility: true,
-      trackVisibility: true,
-      interactive: true,
-      notificationPredicate: (notification) =>
-          notification.metrics.axis == Axis.horizontal,
-      child: SingleChildScrollView(
-        controller: _horizontalController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: 12),
-        child: DataTable(
-          sortColumnIndex: sortIndex,
-          sortAscending: widget.sortAscending,
-          columns: [
-            DataColumn(
-              label: Text(l10n.name),
-              onSort: (_, __) => widget.onSort('name'),
-            ),
-            const DataColumn(
-              label: Tooltip(
-                message: 'Player search available',
-                child: Icon(Icons.person_outline),
-              ),
-            ),
-            const DataColumn(
-              label: Tooltip(
-                message: 'Team search available',
-                child: Icon(Icons.groups_outlined),
-              ),
-            ),
-            DataColumn(
-              label: Text(l10n.startDate),
-              onSort: (_, __) => widget.onSort('startDate'),
-            ),
-            DataColumn(
-              label: Text(l10n.endDate),
-              onSort: (_, __) => widget.onSort('endDate'),
-            ),
-            DataColumn(
-              label: Text(l10n.signupDeadline),
-              onSort: (_, __) => widget.onSort('signupDeadline'),
-            ),
-            DataColumn(label: Text(l10n.club)),
-            DataColumn(label: Text('${l10n.city}/${l10n.country}')),
-            DataColumn(label: Text(l10n.entryFee)),
-            DataColumn(label: Text(l10n.maxTeams)),
-            DataColumn(label: Text(l10n.website)),
-            DataColumn(label: Text(l10n.contact)),
-            const DataColumn(label: Text('')),
-          ],
-          rows: widget.tournaments.map((tournament) {
-            final isOwner =
-                widget.canEdit && auth.userId == tournament.organizerId;
-            return DataRow(
-              cells: [
-                DataCell(
-                  TextButton(
-                    onPressed: () =>
-                        context.go('/tournaments', extra: tournament.id),
-                    child: Text(tournament.name),
-                  ),
-                ),
-                DataCell(
-                  IconButton(
-                    tooltip: 'View player search',
-                    onPressed:
-                        widget.tournamentsWithPlayerSearches.contains(
-                          tournament.id,
-                        )
-                        ? () => context.go('/players', extra: tournament.id)
-                        : null,
-                    icon: Icon(
-                      Icons.person,
-                      color:
-                          widget.tournamentsWithPlayerSearches.contains(
-                            tournament.id,
-                          )
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.outlineVariant,
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tournaments.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final tournament = tournaments[index];
+        final owner = canEdit && auth.userId == tournament.organizerId;
+        final website = tournament.websiteUrl;
+        final location = "${tournament.city}${tournament.country?.isNotEmpty ?? false ? ", ${tournament.country}" : ""}";
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final date = _TournamentDateBlock(date: tournament.startDate);
+                final content = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(tournament.name, style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text([if (tournament.club?.isNotEmpty ?? false) tournament.club!, location].join(" · ")),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _TournamentChip(icon: Icons.date_range_outlined, label: "${_formatDate(context, tournament.startDate)} – ${_formatDate(context, tournament.endDate)}"),
+                        if (tournament.signupDeadline != null) _TournamentChip(icon: Icons.how_to_reg_outlined, label: "${l10n.signupDeadline}: ${_formatDate(context, tournament.signupDeadline!)}"),
+                        if (tournament.entryFee != null) _TournamentChip(icon: Icons.payments_outlined, label: "${tournament.entryFee!.toStringAsFixed(2)} ${tournament.currency ?? ""}"),
+                        if (tournament.maxNumberOfTeams != null) _TournamentChip(icon: Icons.groups_outlined, label: "${tournament.maxNumberOfTeams} ${l10n.maxTeams}"),
+                        if (tournament.contactInformation?.isNotEmpty ?? false) _TournamentChip(icon: Icons.contact_mail_outlined, label: tournament.contactInformation!),
+                      ],
                     ),
-                  ),
-                ),
-                DataCell(
-                  IconButton(
-                    tooltip: 'View team search',
-                    onPressed:
-                        widget.tournamentsWithTeamSearches.contains(
-                          tournament.id,
-                        )
-                        ? () => context.go('/players', extra: tournament.id)
-                        : null,
-                    icon: Icon(
-                      Icons.groups,
-                      color:
-                          widget.tournamentsWithTeamSearches.contains(
-                            tournament.id,
-                          )
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.outlineVariant,
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (website != null && website.isNotEmpty) OutlinedButton.icon(onPressed: () => launchUrl(_websiteUri(website)), icon: const Icon(Icons.language_outlined), label: Text(website)),
+                        if (tournamentsWithPlayerSearches.contains(tournament.id)) IconButton(tooltip: l10n.playersSearchingForTeams, onPressed: () => context.go("/players", extra: tournament.id), icon: const Icon(Icons.person_search_outlined)),
+                        if (tournamentsWithTeamSearches.contains(tournament.id)) IconButton(tooltip: l10n.teamsSearchingForPlayers, onPressed: () => context.go("/players", extra: tournament.id), icon: const Icon(Icons.groups_outlined)),
+                        if (owner) IconButton(tooltip: l10n.editTournament, onPressed: () => onEdit(tournament), icon: const Icon(Icons.edit_outlined)),
+                        if (owner && onDelete != null) IconButton(tooltip: l10n.deleteTournament, onPressed: () => onDelete!(tournament), icon: const Icon(Icons.delete_outline)),
+                      ],
                     ),
-                  ),
-                ),
-                DataCell(Text(_formatDate(context, tournament.startDate))),
-                DataCell(Text(_formatDate(context, tournament.endDate))),
-                DataCell(
-                  Text(
-                    tournament.signupDeadline == null
-                        ? '-'
-                        : _formatDate(context, tournament.signupDeadline!),
-                  ),
-                ),
-                DataCell(Text(tournament.club ?? '-')),
-                DataCell(
-                  Text(
-                    '${tournament.city}${tournament.country == null ? '' : ', ${tournament.country}'}',
-                  ),
-                ),
-                DataCell(
-                  Text(
-                    tournament.entryFee == null
-                        ? '-'
-                        : '${tournament.entryFee!.toStringAsFixed(2)} ${tournament.currency ?? ''}',
-                  ),
-                ),
-                DataCell(Text(tournament.maxNumberOfTeams?.toString() ?? '-')),
-                DataCell(
-                  tournament.websiteUrl == null ||
-                          tournament.websiteUrl!.isEmpty
-                      ? const Text('-')
-                      : TextButton(
-                          onPressed: () => launchUrl(
-                            _websiteUri(tournament.websiteUrl!),
-                          ),
-                          child: Text(tournament.websiteUrl!),
-                        ),
-                ),
-                DataCell(SelectableText(tournament.contactInformation ?? '-')),
-                DataCell(
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isOwner)
-                        IconButton(
-                          tooltip: l10n.editTournament,
-                          onPressed: () => widget.onEdit(tournament),
-                          icon: const Icon(Icons.edit_outlined),
-                        ),
-                      if (isOwner && widget.onDelete != null)
-                        IconButton(
-                          tooltip: l10n.deleteTournament,
-                          onPressed: () => widget.onDelete!(tournament),
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
+                  ],
+                );
+                return constraints.maxWidth < 620
+                    ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [date, const SizedBox(height: 16), content])
+                    : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [date, const SizedBox(width: 20), Expanded(child: content)]);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
+
+class _TournamentDateBlock extends StatelessWidget {
+  const _TournamentDateBlock({required this.date});
+  final DateTime date;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 92,
+    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+    decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(12)),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(DateFormat("MMM", Localizations.localeOf(context).languageCode).format(date.toLocal()).toUpperCase()),
+      Text(DateFormat("d", Localizations.localeOf(context).languageCode).format(date.toLocal()), style: Theme.of(context).textTheme.headlineMedium),
+      Text(DateFormat("y", Localizations.localeOf(context).languageCode).format(date.toLocal())),
+    ]),
+  );
+}
+
+class _TournamentChip extends StatelessWidget {
+  const _TournamentChip({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+  @override
+  Widget build(BuildContext context) => Chip(avatar: Icon(icon, size: 18), label: Text(label));
+}
+
 
 String _formatDate(BuildContext context, DateTime date) => DateFormat(
   'dd-MMM-yyyy',
@@ -2890,6 +2675,8 @@ class PlayersDirectoryPage extends StatefulWidget {
 
 class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
   final _selectedTournamentIds = <String>{};
+  final _selectedRoles = <String>{};
+  static const _roles = ["lead", "second", "third", "skip", "any"];
 
   @override
   void initState() {
@@ -2914,23 +2701,52 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
             builder: (_, teamSearches) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TournamentMultiSelectFilter(
-                  tournaments: tournaments.data ?? const [],
-                  selectedIds: _selectedTournamentIds,
-                  onToggle: (id) => setState(() {
-                    if (!_selectedTournamentIds.add(id)) {
-                      _selectedTournamentIds.remove(id);
-                    }
-                  }),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _SearchableMultiSelectFilter<Tournament>(
+                      label: l10n.tournamentFilter,
+                      items: (tournaments.data ?? const <Tournament>[]).where((tournament) => !tournament.endDate.isBefore(DateTime.now())).toList(),
+                      selectedItems: _selectedTournamentIds,
+                      itemValue: (tournament) => tournament.id,
+                      itemLabel: (tournament) => tournament.name,
+                      onToggle: (id) => setState(() {
+                        if (!_selectedTournamentIds.add(id)) _selectedTournamentIds.remove(id);
+                      }),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.role, style: Theme.of(context).textTheme.labelLarge),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _roles.map((role) => FilterChip(
+                            label: Text(role),
+                            selected: _selectedRoles.contains(role),
+                            onSelected: (selected) => setState(() {
+                              if (selected) { _selectedRoles.add(role); } else { _selectedRoles.remove(role); }
+                            }),
+                          )).toList(),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                if (_selectedTournamentIds.isNotEmpty)
+                if (_selectedTournamentIds.isNotEmpty || _selectedRoles.isNotEmpty)
                   TextButton.icon(
-                    onPressed: () => setState(_selectedTournamentIds.clear),
+                    onPressed: () => setState(() { _selectedTournamentIds.clear(); _selectedRoles.clear(); }),
                     icon: const Icon(Icons.clear),
                     label: Text(l10n.clearFilters),
                   ),
                 const SizedBox(height: 16),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       l10n.teamsSearchingForPlayers,
@@ -2948,7 +2764,10 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
                 const SizedBox(height: 8),
                 _searchTable(tournaments.data ?? const [], searches),
                 const SizedBox(height: 32),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       l10n.playersSearchingForTeams,
@@ -2977,105 +2796,32 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
     List<Tournament> tournaments,
     AsyncSnapshot<List<PlayerTeamSearch>> snapshot,
   ) {
-    if (snapshot.hasError)
-      return Text(AppLocalizations.of(context).unableToLoadData);
-    if (!snapshot.hasData)
-      return const Center(child: CircularProgressIndicator());
-    final byId = {
-      for (final tournament in tournaments) tournament.id: tournament,
-    };
-    final searches = snapshot.data!
-        .where(
-          (search) =>
-              _selectedTournamentIds.isEmpty ||
-              _selectedTournamentIds.contains(search.tournamentId),
-        )
-        .toList();
+    if (snapshot.hasError) return Text(AppLocalizations.of(context).unableToLoadData);
+    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+    final byId = {for (final tournament in tournaments) tournament.id: tournament};
+    final now = DateTime.now();
+    final searches = snapshot.data!.where((search) {
+      final tournament = byId[search.tournamentId];
+      return tournament != null && !tournament.endDate.isBefore(now) && (_selectedTournamentIds.isEmpty || _selectedTournamentIds.contains(search.tournamentId)) && (_selectedRoles.isEmpty || _selectedRoles.contains(search.role));
+    }).toList();
+
     if (searches.isEmpty) return Text(AppLocalizations.of(context).noItems);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: [
-          DataColumn(label: Text(AppLocalizations.of(context).tournament)),
-          DataColumn(label: Text(AppLocalizations.of(context).role)),
-          DataColumn(label: Text(AppLocalizations.of(context).contact)),
-          DataColumn(label: Text('')),
-        ],
-        rows: searches.map((search) {
-          final owner = context.read<AuthController>().userId == search.ownerId;
-          return DataRow(
-            cells: [
-              DataCell(
-                SizedBox(
-                  width: 300,
-                  child: byId[search.tournamentId] == null
-                      ? Text(AppLocalizations.of(context).tournamentUnavailable)
-                      : Builder(
-                          builder: (context) {
-                            final tournament = byId[search.tournamentId]!;
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextButton(
-                                  onPressed: () => context.go(
-                                    '/tournaments',
-                                    extra: tournament.id,
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      tournament.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '${tournament.city}${tournament.country == null ? '' : ', ${tournament.country}'} · ${DateFormat.yMMMd().format(tournament.startDate)} – ${DateFormat.yMMMd().format(tournament.endDate)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                ),
-              ),
-              DataCell(Text(search.role)),
-              DataCell(Text(search.contact)),
-              DataCell(
-                owner
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            tooltip: AppLocalizations.of(context).editSearch,
-                            onPressed: () => _editTeamSearch(search),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            tooltip: AppLocalizations.of(context).deleteSearch,
-                            onPressed: () => _deleteTeamSearch(search),
-                          ),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          );
-        }).toList(),
-      ),
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: searches.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, index) {
+        final search = searches[index];
+        return _PlayerSearchCard(
+          tournament: byId[search.tournamentId],
+          role: search.role,
+          contact: search.contact,
+          isOwner: context.read<AuthController>().userId == search.ownerId,
+          onEdit: () => _editTeamSearch(search),
+          onDelete: () => _deleteTeamSearch(search),
+        );
+      },
     );
   }
 
@@ -3086,13 +2832,14 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         .read<TournamentRepository>()
         .watchTournaments()
         .first;
+    final upcomingTournaments = tournaments.where((tournament) => !tournament.endDate.isBefore(DateTime.now())).toList();
     if (!mounted) return;
     final result = await showDialog<PlayerTeamSearch>(
       context: context,
       builder: (_) => _PlayerTeamSearchDialog(
         ownerId: auth.userId!,
         contact: auth.email!,
-        tournaments: tournaments,
+        tournaments: upcomingTournaments,
       ),
     );
     if (result != null && mounted)
@@ -3148,100 +2895,32 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
     List<Tournament> tournaments,
     AsyncSnapshot<List<TeamPlayerSearch>> snapshot,
   ) {
-    if (snapshot.hasError)
-      return Text(AppLocalizations.of(context).unableToLoadData);
-    if (!snapshot.hasData)
-      return const Center(child: CircularProgressIndicator());
-    final byId = {
-      for (final tournament in tournaments) tournament.id: tournament,
-    };
-    final searches = snapshot.data!
-        .where(
-          (search) =>
-              _selectedTournamentIds.isEmpty ||
-              _selectedTournamentIds.contains(search.tournamentId),
-        )
-        .toList();
+    if (snapshot.hasError) return Text(AppLocalizations.of(context).unableToLoadData);
+    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+    final byId = {for (final tournament in tournaments) tournament.id: tournament};
+    final now = DateTime.now();
+    final searches = snapshot.data!.where((search) {
+      final tournament = byId[search.tournamentId];
+      return tournament != null && !tournament.endDate.isBefore(now) && (_selectedTournamentIds.isEmpty || _selectedTournamentIds.contains(search.tournamentId)) && (_selectedRoles.isEmpty || _selectedRoles.contains(search.role));
+    }).toList();
+
     if (searches.isEmpty) return Text(AppLocalizations.of(context).noItems);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: [
-          DataColumn(label: Text(AppLocalizations.of(context).tournament)),
-          DataColumn(label: Text(AppLocalizations.of(context).role)),
-          DataColumn(label: Text(AppLocalizations.of(context).contact)),
-          DataColumn(label: Text('')),
-        ],
-        rows: searches.map((search) {
-          final tournament = byId[search.tournamentId];
-          final owner = context.read<AuthController>().userId == search.ownerId;
-          return DataRow(
-            cells: [
-              DataCell(
-                SizedBox(
-                  width: 300,
-                  child: tournament == null
-                      ? Text(AppLocalizations.of(context).tournamentUnavailable)
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextButton(
-                              onPressed: () => context.go(
-                                '/tournaments',
-                                extra: tournament.id,
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  tournament.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '${tournament.city}${tournament.country == null ? '' : ', ${tournament.country}'} · ${DateFormat.yMMMd().format(tournament.startDate)} – ${DateFormat.yMMMd().format(tournament.endDate)}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-              DataCell(Text(search.role)),
-              DataCell(Text(search.contact)),
-              DataCell(
-                owner
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            tooltip: AppLocalizations.of(context).editSearch,
-                            onPressed: () => _editSearch(search),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            tooltip: AppLocalizations.of(context).deleteSearch,
-                            onPressed: () => _deleteSearch(search),
-                          ),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          );
-        }).toList(),
-      ),
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: searches.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, index) {
+        final search = searches[index];
+        return _PlayerSearchCard(
+          tournament: byId[search.tournamentId],
+          role: search.role,
+          contact: search.contact,
+          isOwner: context.read<AuthController>().userId == search.ownerId,
+          onEdit: () => _editSearch(search),
+          onDelete: () => _deleteSearch(search),
+        );
+      },
     );
   }
 
@@ -3252,13 +2931,14 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         .read<TournamentRepository>()
         .watchTournaments()
         .first;
+    final upcomingTournaments = tournaments.where((tournament) => !tournament.endDate.isBefore(DateTime.now())).toList();
     if (!mounted) return;
     final result = await showDialog<TeamPlayerSearch>(
       context: context,
       builder: (_) => _TeamSearchDialog(
         ownerId: auth.userId!,
         contact: auth.email!,
-        tournaments: tournaments,
+        tournaments: upcomingTournaments,
       ),
     );
     if (result != null && mounted)
@@ -3308,6 +2988,89 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
     );
     if (confirmed == true && mounted)
       await context.read<PlayerRepository>().deleteTeamSearch(search.id);
+  }
+}
+
+class _PlayerSearchCard extends StatelessWidget {
+  const _PlayerSearchCard({
+    required this.tournament,
+    required this.role,
+    required this.contact,
+    required this.isOwner,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final Tournament? tournament;
+  final String role;
+  final String contact;
+  final bool isOwner;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final event = tournament;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.groups_outlined),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: event == null
+                      ? Text(l10n.tournamentUnavailable, style: Theme.of(context).textTheme.titleMedium)
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              onPressed: () => context.go("/tournaments", extra: event.id),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(event.name, style: Theme.of(context).textTheme.titleLarge),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "${event.city}${event.country?.isNotEmpty ?? false ? ", ${event.country}" : ""} · ${_formatDate(context, event.startDate)} – ${_formatDate(context, event.endDate)}",
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Chip(avatar: const Icon(Icons.sports_outlined, size: 18), label: Text(role)),
+                Chip(avatar: const Icon(Icons.contact_mail_outlined, size: 18), label: SelectableText(contact)),
+                if (isOwner) IconButton(tooltip: l10n.editSearch, onPressed: onEdit, icon: const Icon(Icons.edit_outlined)),
+                if (isOwner) IconButton(tooltip: l10n.deleteSearch, onPressed: onDelete, icon: const Icon(Icons.delete_outline)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -3560,14 +3323,27 @@ class PageFrame extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                            Text(
-                              'CURLING COMPANION',
-                              style: Theme.of(context).textTheme.labelMedium
-                                  ?.copyWith(
-                                    color: _curlingBlue,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.2,
+                            Tooltip(
+                              message: AppLocalizations.of(context).home,
+                              child: InkWell(
+                                onTap: () => context.go('/'),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
                                   ),
+                                  child: Text(
+                                    'CURLING COMPANION',
+                                    style: Theme.of(context).textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: _curlingBlue,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1.2,
+                                        ),
+                                  ),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 6),
                             Text(
