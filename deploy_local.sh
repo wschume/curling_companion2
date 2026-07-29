@@ -15,7 +15,7 @@ Options:
   --project ID       Firebase project ID (defaults to FIREBASE_PROJECT_ID)
   --env-file FILE    dotenv file to load (defaults to .env)
   --run-tests        Run flutter analyze and flutter test before deployment
-  --include-firestore Deploy Hosting plus Firestore rules/indexes
+  --include-firestore Deploy Hosting plus Firestore and Storage rules
   -h, --help         Show this help
 
 Authentication:
@@ -69,7 +69,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --include-firestore)
-      DEPLOY_TARGETS="hosting,firestore"
+      DEPLOY_TARGETS="hosting,firestore,storage"
       shift
       ;;
     --run-tests)

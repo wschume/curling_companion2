@@ -38,6 +38,7 @@ void main() {
         title: 'Shoes',
         description: 'Test',
         price: 10,
+        imageUrls: ['https://example.com/shoes.jpg', 'https://example.com/sole.jpg'],
         ownerId: 'user-2',
       ),
     );
@@ -45,6 +46,11 @@ void main() {
       (await firestore.collection('marketplaceListings').doc('listing-2').get())
           .exists,
       isTrue,
+    );
+    expect(
+      (await firestore.collection('marketplaceListings').doc('listing-2').get())
+          .data()?['imageUrls'],
+      ['https://example.com/shoes.jpg', 'https://example.com/sole.jpg'],
     );
   });
 

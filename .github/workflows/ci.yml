@@ -36,4 +36,4 @@ jobs:
           name: flutter-web
           path: build/web
       - run: npm install --global firebase-tools
-      - run: firebase deploy --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN" --only hosting,firestore
+      - run: firebase deploy --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN" --only hosting,firestore,storage

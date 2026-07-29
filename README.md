@@ -7,7 +7,21 @@ Public Flutter web first draft for curling marketplaces, tournaments, and event 
 1. Install FlutterFire CLI and run `flutterfire configure`.
 2. Replace the placeholder `lib/firebase_options.dart` with the generated file.
 3. Copy `.firebaserc.example` to `.firebaserc` and set the Firebase project ID.
-4. Enable Email/Password authentication and Cloud Firestore in Firebase.
+4. Enable Email/Password authentication, Cloud Firestore, and Cloud Storage in Firebase.
+
+### Cloud Storage CORS
+
+Marketplace images are loaded directly by the Flutter web client. Apply the
+included CORS configuration to the Firebase Storage bucket once (requires the
+Google Cloud CLI and Storage Admin access):
+
+```sh
+gcloud storage buckets update gs://curling-companion-28e7a.firebasestorage.app \
+  --cors-file=storage.cors.json
+```
+
+The configuration permits browser `GET` requests from any origin. This is
+appropriate for marketplace images because they are intentionally public.
 
 Without Firebase configuration, the app deliberately uses placeholder in-memory data so the UI and tests can run locally.
 
@@ -43,7 +57,7 @@ export FIREBASE_TOKEN="your-token"
 
 You may also put `FIREBASE_TOKEN` in `.env` for local-only use. Never commit that file.
 
-To run analysis and tests before deploying, add `--run-tests`. To deploy Firestore rules and indexes as well as Hosting, add `--include-firestore`:
+To run analysis and tests before deploying, add `--run-tests`. To deploy Firestore rules and indexes, Cloud Storage rules, and Hosting, add `--include-firestore`:
 
 ```sh
 ./deploy_local.sh --run-tests --include-firestore

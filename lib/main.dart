@@ -1,10 +1,13 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, unnecessary_underscores, use_null_aware_elements
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -145,34 +148,62 @@ class CurlingCompanionApp extends StatelessWidget {
   static final _routes = <RouteBase>[
     GoRoute(
       path: '/login',
-      builder: (_, __) => const AuthPage(register: false),
+      pageBuilder: (_, state) => NoTransitionPage<void>(
+        key: state.pageKey,
+        child: const AuthPage(register: false),
+      ),
     ),
     GoRoute(
       path: '/register',
-      builder: (_, __) => const AuthPage(register: true),
+      pageBuilder: (_, state) => NoTransitionPage<void>(
+        key: state.pageKey,
+        child: const AuthPage(register: true),
+      ),
     ),
     ShellRoute(
-      builder: (_, __, child) => AppShell(child: child),
+      pageBuilder: (_, state, child) => NoTransitionPage<void>(
+        key: state.pageKey,
+        child: AppShell(child: child),
+      ),
       routes: [
-        GoRoute(path: '/', builder: (_, __) => const HomePage()),
+        GoRoute(
+          path: '/',
+          pageBuilder: (_, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const HomePage(),
+          ),
+        ),
         GoRoute(
           path: '/marketplace',
-          builder: (_, __) => const MarketplacePage(),
+          pageBuilder: (_, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const MarketplacePage(),
+          ),
         ),
         GoRoute(
           path: '/tournaments',
-          builder: (_, state) =>
-              TournamentsPage(initialTournamentId: state.extra as String?),
+          pageBuilder: (_, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: TournamentsPage(
+              initialTournamentId: state.extra as String?,
+            ),
+          ),
         ),
         GoRoute(
           path: '/players',
-          builder: (_, state) =>
-              PlayersDirectoryPage(initialTournamentId: state.extra as String?),
+          pageBuilder: (_, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: PlayersDirectoryPage(
+              initialTournamentId: state.extra as String?,
+            ),
+          ),
         ),
         GoRoute(
           path: '/tournaments/:id/players',
-          builder: (_, state) =>
-              PlayersPage(eventId: state.pathParameters['id']!),
+          pageBuilder: (_, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: PlayersPage(eventId: state.pathParameters['id']!),
+          ),
         ),
       ],
     ),
@@ -754,8 +785,6 @@ class MarketplacePage extends StatefulWidget {
 
 class _MarketplacePageState extends State<MarketplacePage> {
   String _category = 'all';
-  String _sort = 'dateNewest';
-  bool _sortAscending = false;
 
   @override
   Widget build(BuildContext context) {
@@ -774,14 +803,14 @@ class _MarketplacePageState extends State<MarketplacePage> {
       child: StreamBuilder<List<MarketplaceListing>>(
         stream: context.read<MarketplaceRepository>().watchListings(),
         builder: (_, snapshot) {
-          final listings = _filteredAndSorted(snapshot.data ?? const []);
+          final listings = _filtered(snapshot.data ?? const []);
           return Column(
             children: [
               _MarketplaceFilters(
                 category: _category,
                 onCategoryChanged: (value) => setState(() => _category = value),
               ),
-              _listingTable(snapshot, listings),
+              _listingFeed(snapshot, listings),
             ],
           );
         },
@@ -789,42 +818,11 @@ class _MarketplacePageState extends State<MarketplacePage> {
     );
   }
 
-  List<MarketplaceListing> _filteredAndSorted(List<MarketplaceListing> items) {
-    final result = items
-        .where((item) => _category == 'all' || item.category == _category)
-        .toList();
-    result.sort((a, b) {
-      final comparison = switch (_sort) {
-        'title' => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
-        'description' => a.description.toLowerCase().compareTo(
-          b.description.toLowerCase(),
-        ),
-        'category' => a.category.compareTo(b.category),
-        'price' || 'priceLow' || 'priceHigh' => a.price.compareTo(b.price),
-        'location' => a.location.toLowerCase().compareTo(
-          b.location.toLowerCase(),
-        ),
-        'seller' => a.sellerContact.toLowerCase().compareTo(
-          b.sellerContact.toLowerCase(),
-        ),
-        'date' ||
-        'dateOldest' ||
-        'dateNewest' => (a.listedAt ?? DateTime(1970)).compareTo(
-          b.listedAt ?? DateTime(1970),
-        ),
-        _ => 0,
-      };
-      return _sortAscending ? comparison : -comparison;
-    });
-    return result;
-  }
+  List<MarketplaceListing> _filtered(List<MarketplaceListing> items) => items
+      .where((item) => _category == 'all' || item.category == _category)
+      .toList();
 
-  void _sortBy(String field, bool ascending) => setState(() {
-    _sort = field;
-    _sortAscending = ascending;
-  });
-
-  Widget _listingTable(
+  Widget _listingFeed(
     AsyncSnapshot<List<MarketplaceListing>> snapshot,
     List<MarketplaceListing> listings,
   ) {
@@ -834,102 +832,24 @@ class _MarketplacePageState extends State<MarketplacePage> {
     }
     if (listings.isEmpty) return Text(AppLocalizations.of(context).noItems);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        dataRowMinHeight: 64,
-        dataRowMaxHeight: 64,
-        sortColumnIndex: _tableSortColumn,
-        sortAscending: _sortAscending,
-        columns: [
-          _sortableColumn('Title', 'title', 0),
-          _sortableColumn('Description', 'description', 1),
-          _sortableColumn('Category', 'category', 2),
-          _sortableColumn('Price', 'price', 3, numeric: true),
-          _sortableColumn('Location', 'location', 4),
-          _sortableColumn('Seller', 'seller', 5),
-          _sortableColumn('Listed', 'date', 6),
-          DataColumn(label: Text('')),
-        ],
-        rows: listings.map((item) {
-          final isOwner = context.read<AuthController>().userId == item.ownerId;
-          return DataRow(
-            cells: [
-              DataCell(
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 180),
-                  child: Text(item.title, overflow: TextOverflow.ellipsis),
-                ),
-              ),
-              DataCell(
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 280),
-                  child: Text(
-                    item.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              DataCell(Text(item.category)),
-              DataCell(
-                Text('${item.price.toStringAsFixed(2)} ${item.currency}'),
-              ),
-              DataCell(Text(item.location)),
-              DataCell(Text(item.sellerContact)),
-              DataCell(
-                Text(
-                  item.listedAt == null
-                      ? '—'
-                      : DateFormat.yMMMd().format(item.listedAt!),
-                ),
-              ),
-              DataCell(
-                isOwner
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            tooltip: 'Edit listing',
-                            onPressed: () => _editListing(item),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            tooltip: 'Delete listing',
-                            onPressed: () => _deleteListing(item),
-                          ),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          );
-        }).toList(),
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: listings.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, index) => _MarketplaceListingFeedCard(
+        listing: listings[index],
+        isOwner: context.read<AuthController>().userId == listings[index].ownerId,
+        onDetails: () => _showDetails(listings[index]),
+        onEdit: () => _editListing(listings[index]),
+        onDelete: () => _deleteListing(listings[index]),
       ),
     );
   }
 
-  int? get _tableSortColumn => switch (_sort) {
-    'title' => 0,
-    'description' => 1,
-    'category' => 2,
-    'price' || 'priceLow' || 'priceHigh' => 3,
-    'location' => 4,
-    'seller' => 5,
-    'date' || 'dateOldest' || 'dateNewest' => 6,
-    _ => null,
-  };
-
-  DataColumn _sortableColumn(
-    String label,
-    String field,
-    int index, {
-    bool numeric = false,
-  }) => DataColumn(
-    label: Text(label),
-    numeric: numeric,
-    onSort: (_, ascending) => _sortBy(field, ascending),
+  Future<void> _showDetails(MarketplaceListing listing) => showDialog<void>(
+    context: context,
+    builder: (_) => _MarketplaceListingDetailsDialog(listing: listing),
   );
 
   Future<void> _createListing(BuildContext context) async {
@@ -980,6 +900,327 @@ class _MarketplacePageState extends State<MarketplacePage> {
     if (confirmed == true && mounted) {
       await context.read<MarketplaceRepository>().delete(listing.id);
     }
+  }
+}
+
+class _MarketplaceListingFeedCard extends StatelessWidget {
+  const _MarketplaceListingFeedCard({
+    required this.listing,
+    required this.isOwner,
+    required this.onDetails,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final MarketplaceListing listing;
+  final bool isOwner;
+  final VoidCallback onDetails;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final image = SizedBox(
+            width: constraints.maxWidth >= 700 ? 220 : double.infinity,
+            height: 170,
+            child: _MarketplaceImagePreview(listing: listing),
+          );
+          final content = _ListingFeedContent(
+            listing: listing,
+            isOwner: isOwner,
+            onDetails: onDetails,
+            onEdit: onEdit,
+            onDelete: onDelete,
+          );
+          if (constraints.maxWidth < 700) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [image, const SizedBox(height: 16), content],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [image, const SizedBox(width: 20), Expanded(child: content)],
+          );
+        },
+      ),
+    ),
+  );
+}
+
+class _ListingFeedContent extends StatelessWidget {
+  const _ListingFeedContent({
+    required this.listing,
+    required this.isOwner,
+    required this.onDetails,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final MarketplaceListing listing;
+  final bool isOwner;
+  final VoidCallback onDetails;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Chip(label: Text(listing.category)),
+          const Spacer(),
+          Text(
+            '${listing.price.toStringAsFixed(2)} ${listing.currency}',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      Text(listing.title, style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: 6),
+      Text(listing.description, maxLines: 4, overflow: TextOverflow.ellipsis),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        children: [
+          if (listing.location.isNotEmpty)
+            _ListingMeta(icon: Icons.location_on_outlined, text: listing.location),
+          if (listing.listedAt != null)
+            _ListingMeta(
+              icon: Icons.calendar_today_outlined,
+              text: DateFormat.yMMMd().format(listing.listedAt!),
+            ),
+          if (listing.sellerName.isNotEmpty)
+            _ListingMeta(icon: Icons.person_outline, text: listing.sellerName),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          FilledButton.tonalIcon(
+            onPressed: onDetails,
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('View details'),
+          ),
+          _MarketplaceContactButton(contact: listing.sellerContact),
+          if (isOwner) ...[
+            IconButton(
+              tooltip: 'Edit listing',
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'Delete listing',
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ],
+      ),
+    ],
+  );
+}
+
+class _ListingMeta extends StatelessWidget {
+  const _ListingMeta({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [Icon(icon, size: 16), const SizedBox(width: 4), Text(text)],
+  );
+}
+
+class _MarketplaceImagePreview extends StatelessWidget {
+  const _MarketplaceImagePreview({required this.listing});
+  final MarketplaceListing listing;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      _MarketplaceImage(url: listing.imageUrls.firstOrNull, category: listing.category),
+      if (listing.imageUrls.length > 1)
+        Positioned(
+          right: 8,
+          bottom: 8,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(
+                '1 / ${listing.imageUrls.length}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+class _MarketplaceImage extends StatelessWidget {
+  const _MarketplaceImage({required this.url, required this.category});
+  final String? url;
+  final String category;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = url;
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Center(
+          child: Icon(_categoryIcon(category), size: 52, color: Theme.of(context).colorScheme.primary),
+        ),
+      );
+    }
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: const Center(child: Icon(Icons.broken_image_outlined, size: 44)),
+      ),
+    );
+  }
+}
+
+IconData _categoryIcon(String category) => switch (category) {
+  'shoes' => Icons.ice_skating_outlined,
+  'brooms' => Icons.cleaning_services_outlined,
+  'stones' => Icons.sports_baseball_outlined,
+  _ => Icons.inventory_2_outlined,
+};
+
+class _MarketplaceContactButton extends StatelessWidget {
+  const _MarketplaceContactButton({required this.contact});
+  final String contact;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(contact);
+    if (contact.trim().isEmpty) return const SizedBox.shrink();
+    return OutlinedButton.icon(
+      onPressed: () => launchUrl(
+        Uri(scheme: isEmail ? 'mailto' : 'tel', path: contact.trim()),
+      ),
+      icon: Icon(isEmail ? Icons.email_outlined : Icons.phone_outlined),
+      label: Text(isEmail ? 'Email seller' : 'Call seller'),
+    );
+  }
+}
+
+class _MarketplaceListingDetailsDialog extends StatelessWidget {
+  const _MarketplaceListingDetailsDialog({required this.listing});
+  final MarketplaceListing listing;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(listing.title),
+    content: SizedBox(
+      width: 760,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 360, child: _MarketplaceImageGallery(listing: listing)),
+            const SizedBox(height: 20),
+            Text(
+              '${listing.price.toStringAsFixed(2)} ${listing.currency}',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 12),
+            Text(listing.description),
+            const SizedBox(height: 20),
+            if (listing.location.isNotEmpty) Text('Location: ${listing.location}'),
+            if (listing.sellerName.isNotEmpty) Text('Seller: ${listing.sellerName}'),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      _MarketplaceContactButton(contact: listing.sellerContact),
+      TextButton(onPressed: () => context.pop(), child: const Text('Close')),
+    ],
+  );
+}
+
+class _MarketplaceImageGallery extends StatefulWidget {
+  const _MarketplaceImageGallery({required this.listing});
+  final MarketplaceListing listing;
+
+  @override
+  State<_MarketplaceImageGallery> createState() => _MarketplaceImageGalleryState();
+}
+
+class _MarketplaceImageGalleryState extends State<_MarketplaceImageGallery> {
+  var _selectedImage = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final images = widget.listing.imageUrls;
+    if (images.isEmpty) {
+      return _MarketplaceImage(url: null, category: widget.listing.category);
+    }
+    return Column(
+      children: [
+        Expanded(
+          child: _MarketplaceImage(
+            url: images[_selectedImage],
+            category: widget.listing.category,
+          ),
+        ),
+        if (images.length > 1) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 64,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: images.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, index) => InkWell(
+                onTap: () => setState(() => _selectedImage = index),
+                child: SizedBox(
+                  width: 80,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: index == _selectedImage
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: _MarketplaceImage(
+                      url: images[index],
+                      category: widget.listing.category,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -1045,7 +1286,15 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
     text: widget.initial?.currency ?? 'EUR',
   );
   late final _location = TextEditingController(text: widget.initial?.location);
+  late final _contact = TextEditingController(
+    text: widget.initial?.sellerContact ?? widget.email,
+  );
+  late final _imageUrls = List<String>.of(widget.initial?.imageUrls ?? const []);
+  final _newImages = <PlatformFile>[];
+  final _removedImageUrls = <String>[];
   late String _category = widget.initial?.category ?? 'other';
+  bool _isUploading = false;
+  String? _uploadError;
 
   @override
   void dispose() {
@@ -1054,6 +1303,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
     _price.dispose();
     _currency.dispose();
     _location.dispose();
+    _contact.dispose();
     super.dispose();
   }
 
@@ -1125,6 +1375,59 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                 decoration: const InputDecoration(labelText: 'Location'),
                 validator: _required,
               ),
+              TextFormField(
+                controller: _contact,
+                decoration: const InputDecoration(
+                  labelText: 'Seller email or phone',
+                ),
+                validator: _required,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _isUploading ? null : _pickImages,
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  label: const Text('Add images'),
+                ),
+              ),
+              if (_imageUrls.isEmpty && _newImages.isEmpty)
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Optional. You can attach multiple images.'),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (var index = 0; index < _imageUrls.length; index++)
+                      InputChip(
+                        label: Text('Image ${index + 1}'),
+                        onDeleted: _isUploading
+                            ? null
+                            : () => setState(() {
+                                _removedImageUrls.add(_imageUrls.removeAt(index));
+                              }),
+                      ),
+                    for (final image in _newImages)
+                      InputChip(
+                        avatar: const Icon(Icons.image_outlined),
+                        label: Text(image.name),
+                        onDeleted: _isUploading
+                            ? null
+                            : () => setState(() => _newImages.remove(image)),
+                      ),
+                  ],
+                ),
+              if (_uploadError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _uploadError!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1133,8 +1436,14 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
     actions: [
       TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
       FilledButton(
-        onPressed: _submit,
-        child: Text(widget.initial == null ? 'Create listing' : 'Save changes'),
+        onPressed: _isUploading ? null : _submit,
+        child: Text(
+          _isUploading
+              ? 'Uploading images…'
+              : widget.initial == null
+              ? 'Create listing'
+              : 'Save changes',
+        ),
       ),
     ],
   );
@@ -1142,13 +1451,54 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   String? _required(String? value) =>
       value == null || value.trim().isEmpty ? 'This field is required.' : null;
 
-  void _submit() {
+  Future<void> _pickImages() async {
+    if (Firebase.apps.isEmpty) {
+      setState(() => _uploadError = 'Image uploads require Firebase configuration.');
+      return;
+    }
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+      withData: true,
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _newImages.addAll(result.files.where((file) => file.bytes != null));
+      _uploadError = null;
+    });
+  }
+
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    context.pop(
-      MarketplaceListing(
-        id:
-            widget.initial?.id ??
-            DateTime.now().microsecondsSinceEpoch.toString(),
+    final id = widget.initial?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
+    setState(() {
+      _isUploading = true;
+      _uploadError = null;
+    });
+    try {
+      final imageUrls = List<String>.of(_imageUrls);
+      for (final image in _newImages) {
+        final Uint8List? data = image.bytes;
+        if (data == null) continue;
+        final path = 'marketplaceListings/${widget.ownerId}/$id/${DateTime.now().microsecondsSinceEpoch}_${_safeFileName(image.name)}';
+        final reference = FirebaseStorage.instance.ref(path);
+        await reference.putData(
+          data,
+          SettableMetadata(contentType: _imageContentType(image.extension)),
+        );
+        imageUrls.add(await reference.getDownloadURL());
+      }
+      for (final url in _removedImageUrls) {
+        try {
+          await FirebaseStorage.instance.refFromURL(url).delete();
+        } on FirebaseException {
+          // A legacy URL may not point to an object owned by this app.
+        }
+      }
+      if (!mounted) return;
+      context.pop(
+        MarketplaceListing(
+          id: id,
         title: _title.text.trim(),
         description: _description.text.trim(),
         price: double.parse(_price.text.replaceAll(',', '.')),
@@ -1156,12 +1506,31 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
         category: _category,
         location: _location.text.trim(),
         sellerName: widget.initial?.sellerName ?? widget.email,
-        sellerContact: widget.initial?.sellerContact ?? widget.email,
+        sellerContact: _contact.text.trim(),
         listedAt: widget.initial?.listedAt ?? DateTime.now(),
+        imageUrls: imageUrls,
         ownerId: widget.ownerId,
       ),
-    );
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _uploadError = 'Unable to upload one or more images. Please try again.';
+        });
+      }
+    }
   }
+
+  String _safeFileName(String name) => name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+
+  String _imageContentType(String? extension) => switch (extension?.toLowerCase()) {
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'png' => 'image/png',
+    'gif' => 'image/gif',
+    'webp' => 'image/webp',
+    _ => 'application/octet-stream',
+  };
 }
 
 class TournamentsPage extends StatefulWidget {
@@ -1177,8 +1546,10 @@ class _TournamentsPageState extends State<TournamentsPage> {
   final _selectedTournamentIds = <String>{};
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
-  String _sortField = 'startDate';
-  bool _sortAscending = true;
+  String _futureSortField = 'startDate';
+  bool _futureSortAscending = true;
+  String _pastSortField = 'startDate';
+  bool _pastSortAscending = true;
   bool _showPastTournaments = false;
   bool _showMyTournaments = false;
 
@@ -1258,10 +1629,16 @@ class _TournamentsPageState extends State<TournamentsPage> {
               _selectedTournamentIds.contains(item.id),
         )
         .toList();
-    final future = focused
-        .where((item) => !item.endDate.isBefore(now))
-        .toList();
-    final past = focused.where((item) => item.endDate.isBefore(now)).toList();
+    final future = _sorted(
+      focused.where((item) => !item.endDate.isBefore(now)),
+      field: _futureSortField,
+      ascending: _futureSortAscending,
+    );
+    final past = _sorted(
+      focused.where((item) => item.endDate.isBefore(now)),
+      field: _pastSortField,
+      ascending: _pastSortAscending,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1308,9 +1685,9 @@ class _TournamentsPageState extends State<TournamentsPage> {
         _TournamentTable(
           tournaments: future,
           emptyText: l10n.noFutureTournaments,
-          sortField: _sortField,
-          sortAscending: _sortAscending,
-          onSort: _sort,
+          sortField: _futureSortField,
+          sortAscending: _futureSortAscending,
+          onSort: _sortFuture,
           canEdit: context.read<AuthController>().isSignedIn,
           onEdit: _editTournament,
           onDelete: _deleteTournament,
@@ -1340,9 +1717,9 @@ class _TournamentsPageState extends State<TournamentsPage> {
           _TournamentTable(
             tournaments: past,
             emptyText: l10n.noPastTournaments,
-            sortField: _sortField,
-            sortAscending: _sortAscending,
-            onSort: _sort,
+            sortField: _pastSortField,
+            sortAscending: _pastSortAscending,
+            onSort: _sortPast,
             canEdit: context.read<AuthController>().isSignedIn,
             onEdit: _editTournament,
             tournamentsWithPlayerSearches: tournamentsWithPlayerSearches,
@@ -1371,29 +1748,49 @@ class _TournamentsPageState extends State<TournamentsPage> {
           organizerId == null || tournament.organizerId == organizerId;
       return matchesLocation && matchesStart && matchesEnd && matchesOrganizer;
     }).toList();
+    return result;
+  }
+
+  List<Tournament> _sorted(
+    Iterable<Tournament> source, {
+    required String field,
+    required bool ascending,
+  }) {
+    final result = source.toList();
     result.sort((a, b) {
-      final left = _sortValue(a);
-      final right = _sortValue(b);
+      final left = _sortValue(a, field);
+      final right = _sortValue(b, field);
       final comparison = left.compareTo(right);
-      return _sortAscending ? comparison : -comparison;
+      return ascending ? comparison : -comparison;
     });
     return result;
   }
 
-  String _sortValue(Tournament tournament) => switch (_sortField) {
+  String _sortValue(Tournament tournament, String field) => switch (field) {
     'endDate' => tournament.endDate.toIso8601String(),
     'signupDeadline' => tournament.signupDeadline?.toIso8601String() ?? '',
     'name' => tournament.name.toLowerCase(),
     _ => tournament.startDate.toIso8601String(),
   };
 
-  void _sort(String field) {
+  void _sortFuture(String field) {
     setState(() {
-      if (_sortField == field) {
-        _sortAscending = !_sortAscending;
+      if (_futureSortField == field) {
+        _futureSortAscending = !_futureSortAscending;
       } else {
-        _sortField = field;
-        _sortAscending = true;
+        _futureSortField = field;
+        _futureSortAscending = true;
+      }
+    });
+  }
+
+  void _sortPast(String field) {
+    setState(() {
+      if (_pastSortField == field) {
+        _pastSortAscending = !_pastSortAscending;
+      } else {
+        _pastSortField = field;
+        _pastSortAscending = true;
       }
     });
   }
@@ -1744,9 +2141,9 @@ class _TournamentTableState extends State<_TournamentTable> {
     final auth = context.read<AuthController>();
     final sortIndex = {
       'name': 0,
-      'startDate': 1,
-      'endDate': 2,
-      'signupDeadline': 3,
+      'startDate': 3,
+      'endDate': 4,
+      'signupDeadline': 5,
     }[widget.sortField];
     return Scrollbar(
       controller: _horizontalController,
@@ -1879,9 +2276,10 @@ class _TournamentTableState extends State<_TournamentTable> {
                           tournament.websiteUrl!.isEmpty
                       ? const Text('-')
                       : TextButton(
-                          onPressed: () =>
-                              launchUrl(Uri.parse(tournament.websiteUrl!)),
-                          child: Text(l10n.website),
+                          onPressed: () => launchUrl(
+                            _websiteUri(tournament.websiteUrl!),
+                          ),
+                          child: Text(tournament.websiteUrl!),
                         ),
                 ),
                 DataCell(SelectableText(tournament.contactInformation ?? '-')),
@@ -1917,6 +2315,11 @@ String _formatDate(BuildContext context, DateTime date) => DateFormat(
   'dd-MMM-yyyy',
   Localizations.localeOf(context).languageCode,
 ).format(date.toLocal());
+
+Uri _websiteUri(String website) {
+  final parsed = Uri.parse(website);
+  return parsed.hasScheme ? parsed : Uri.parse('https://$website');
+}
 
 class _TournamentFormDialog extends StatefulWidget {
   const _TournamentFormDialog({
@@ -1996,23 +2399,20 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
           child: Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text('* ${l10n.requiredField}'),
+                const SizedBox(height: 12),
                 _requiredField(_name, l10n.name),
-                _requiredField(_city, l10n.location),
+                _requiredField(_city, l10n.city),
                 Row(
                   children: [
                     Expanded(
-                      child: TextFormField(
-                        controller: _country,
-                        decoration: InputDecoration(labelText: l10n.country),
-                      ),
+                      child: _requiredField(_country, l10n.country),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: TextFormField(
-                        controller: _club,
-                        decoration: InputDecoration(labelText: l10n.club),
-                      ),
+                      child: _requiredField(_club, l10n.club),
                     ),
                   ],
                 ),
@@ -2045,7 +2445,7 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
                 TextFormField(
                   controller: _contact,
                   decoration: InputDecoration(
-                    labelText: l10n.contact,
+                    labelText: _requiredLabel(l10n.contact),
                     hintText: l10n.contactHint,
                   ),
                   validator: _contactValidator,
@@ -2053,14 +2453,6 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
                 TextFormField(
                   controller: _website,
                   decoration: InputDecoration(labelText: l10n.website),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return null;
-                    final uri = Uri.tryParse(value);
-                    return uri == null ||
-                            !(uri.scheme == 'http' || uri.scheme == 'https')
-                        ? l10n.invalidWebsite
-                        : null;
-                  },
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -2068,7 +2460,7 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
                   runSpacing: 12,
                   children: [
                     _FormDateButton(
-                      label: l10n.startDate,
+                      label: _requiredLabel(l10n.startDate),
                       value: _startDate,
                       onChanged: (value) => setState(() => _startDate = value!),
                       referenceDate: _endDate,
@@ -2077,7 +2469,7 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
                       ),
                     ),
                     _FormDateButton(
-                      label: l10n.endDate,
+                      label: _requiredLabel(l10n.endDate),
                       value: _endDate,
                       onChanged: (value) => setState(() => _endDate = value!),
                       referenceDate: _startDate,
@@ -2126,11 +2518,13 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
   Widget _requiredField(TextEditingController controller, String label) =>
       TextFormField(
         controller: controller,
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(labelText: _requiredLabel(label)),
         validator: (value) => value == null || value.trim().isEmpty
             ? AppLocalizations.of(context).requiredField
             : null,
       );
+
+  String _requiredLabel(String label) => '$label *';
 
   Widget _numberField(
     TextEditingController controller,
@@ -2152,7 +2546,9 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
   );
 
   String? _contactValidator(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
+    if (value == null || value.trim().isEmpty) {
+      return AppLocalizations.of(context).requiredField;
+    }
     final text = value.trim();
     final email = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text);
     final phoneDigits = text.replaceAll(RegExp(r'[^0-9]'), '');

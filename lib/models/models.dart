@@ -15,6 +15,7 @@ class MarketplaceListing with MarketplaceListingMappable {
     this.sellerName = '',
     this.sellerContact = '',
     this.listedAt,
+    this.imageUrls = const [],
     required this.ownerId,
   });
 
@@ -28,6 +29,7 @@ class MarketplaceListing with MarketplaceListingMappable {
   final String sellerName;
   final String sellerContact;
   final DateTime? listedAt;
+  final List<String> imageUrls;
   final String ownerId;
 }
 
