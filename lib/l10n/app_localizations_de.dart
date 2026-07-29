@@ -359,4 +359,80 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get unableToLoadData => 'Daten konnten nicht geladen werden.';
+
+  @override
+  String get category => 'Kategorie';
+
+  @override
+  String get allCategories => 'Alle Kategorien';
+
+  @override
+  String get shoes => 'Schuhe';
+
+  @override
+  String get stones => 'Curlingsteine';
+
+  @override
+  String get brooms => 'Besen';
+
+  @override
+  String get other => 'Sonstiges';
+
+  @override
+  String get title => 'Titel';
+
+  @override
+  String get description => 'Beschreibung';
+
+  @override
+  String get viewDetails => 'Details anzeigen';
+
+  @override
+  String get emailSeller => 'Verkäufer kontaktieren';
+
+  @override
+  String get callSeller => 'Verkäufer anrufen';
+
+  @override
+  String get seller => 'Verkäufer';
+
+  @override
+  String get close => 'Schließen';
+
+  @override
+  String get editListing => 'Anzeige bearbeiten';
+
+  @override
+  String get deleteListing => 'Anzeige löschen?';
+
+  @override
+  String get deleteListingMessage =>
+      'Diese Aktion kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get sellerEmailOrPhone => 'E-Mail oder Telefon des Verkäufers';
+
+  @override
+  String get addImages => 'Bilder hinzufügen';
+
+  @override
+  String get optionalMultipleImages =>
+      'Optional. Du kannst mehrere Bilder anhängen.';
+
+  @override
+  String get image => 'Bild';
+
+  @override
+  String get uploadingImages => 'Bilder werden hochgeladen…';
+
+  @override
+  String get enterValidPrice => 'Gib einen gültigen Preis ein.';
+
+  @override
+  String get imageUploadsRequireFirebase =>
+      'Für Bilduploads ist eine Firebase-Konfiguration erforderlich.';
+
+  @override
+  String get imageUploadFailed =>
+      'Ein oder mehrere Bilder konnten nicht hochgeladen werden. Bitte versuche es erneut.';
 }

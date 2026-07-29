@@ -763,6 +763,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to load data.'**
   String get unableToLoadData;
+
+  /// No description provided for @category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get category;
+
+  /// No description provided for @allCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'All categories'**
+  String get allCategories;
+
+  /// No description provided for @shoes.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoes'**
+  String get shoes;
+
+  /// No description provided for @stones.
+  ///
+  /// In en, this message translates to:
+  /// **'Stones'**
+  String get stones;
+
+  /// No description provided for @brooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Brooms'**
+  String get brooms;
+
+  /// No description provided for @other.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get other;
+
+  /// No description provided for @title.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get title;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get description;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
+  /// No description provided for @emailSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Email seller'**
+  String get emailSeller;
+
+  /// No description provided for @callSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Call seller'**
+  String get callSeller;
+
+  /// No description provided for @seller.
+  ///
+  /// In en, this message translates to:
+  /// **'Seller'**
+  String get seller;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @editListing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit listing'**
+  String get editListing;
+
+  /// No description provided for @deleteListing.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete listing?'**
+  String get deleteListing;
+
+  /// No description provided for @deleteListingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get deleteListingMessage;
+
+  /// No description provided for @sellerEmailOrPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Seller email or phone'**
+  String get sellerEmailOrPhone;
+
+  /// No description provided for @addImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Add images'**
+  String get addImages;
+
+  /// No description provided for @optionalMultipleImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. You can attach multiple images.'**
+  String get optionalMultipleImages;
+
+  /// No description provided for @image.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get image;
+
+  /// No description provided for @uploadingImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading images…'**
+  String get uploadingImages;
+
+  /// No description provided for @enterValidPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid price.'**
+  String get enterValidPrice;
+
+  /// No description provided for @imageUploadsRequireFirebase.
+  ///
+  /// In en, this message translates to:
+  /// **'Image uploads require Firebase configuration.'**
+  String get imageUploadsRequireFirebase;
+
+  /// No description provided for @imageUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to upload one or more images. Please try again.'**
+  String get imageUploadFailed;
 }
 
 class _AppLocalizationsDelegate

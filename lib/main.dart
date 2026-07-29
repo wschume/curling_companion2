@@ -20,6 +20,13 @@ import 'l10n/app_localizations.dart';
 import 'models/models.dart';
 import 'services/services.dart';
 
+const _inkNavy = Color(0xFFF1FAFC);
+const _curlingBlue = Color(0xFF168AA4);
+const _ice = Color(0xFF0B1F2A);
+const _surface = Color(0xFF123542);
+const _granite = Color(0xFFB8CAD1);
+const _warmAmber = Color(0xFFFFC45B);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AuthService auth;
@@ -227,25 +234,96 @@ class _AppView extends StatelessWidget {
   final GoRouter router;
 
   @override
-  Widget build(BuildContext context) => MaterialApp.router(
-    title: 'Curling Companion',
-    routerConfig: router,
-    locale: (() {
-      final userLanguage = context.watch<AuthController>().language;
-      return userLanguage == null ? const Locale('en') : Locale(userLanguage);
-    })(),
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
-      useMaterial3: true,
-    ),
-    supportedLocales: const [Locale('en'), Locale('de')],
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-  );
+  Widget build(BuildContext context) {
+    final colors = ColorScheme.fromSeed(
+      seedColor: _curlingBlue,
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: _curlingBlue,
+      onPrimary: Colors.white,
+      secondary: const Color(0xFF74D8EA),
+      onSecondary: _ice,
+      tertiary: _warmAmber,
+      onTertiary: _ice,
+      surface: _surface,
+      onSurface: _inkNavy,
+      outline: const Color(0xFF49636D),
+    );
+    return MaterialApp.router(
+      title: 'Curling Companion',
+      routerConfig: router,
+      locale: (() {
+        final userLanguage = context.watch<AuthController>().language;
+        return userLanguage == null
+            ? context.watch<LocaleController>().locale
+            : Locale(userLanguage);
+      })(),
+      theme: ThemeData(
+        colorScheme: colors,
+        useMaterial3: true,
+        scaffoldBackgroundColor: _ice,
+        cardTheme: CardThemeData(
+          color: _surface,
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF244B59)),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: _curlingBlue,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            shape: const StadiumBorder(),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _inkNavy,
+            side: const BorderSide(color: Color(0xFF66818B)),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            shape: const StadiumBorder(),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: _surface,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF49636D)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF49636D)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _curlingBlue, width: 2),
+          ),
+        ),
+        navigationRailTheme: const NavigationRailThemeData(
+          backgroundColor: Color(0xFF0E2834),
+          selectedIconTheme: IconThemeData(color: _inkNavy),
+          selectedLabelTextStyle: TextStyle(
+            color: _inkNavy,
+            fontWeight: FontWeight.w700,
+          ),
+          indicatorColor: Color(0xFF1B4757),
+        ),
+        dividerTheme: const DividerThemeData(color: Color(0xFF244B59)),
+      ),
+      supportedLocales: const [Locale('en'), Locale('de')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+    );
+  }
 }
 
 class AppShell extends StatelessWidget {
@@ -254,49 +332,48 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final auth = context.watch<AuthController>();
+    final path = GoRouterState.of(context).uri.path;
     return Scaffold(
-      appBar: AppBar(
-        title: InkWell(
-          onTap: () => context.go('/'),
-          child: Text(l10n.appTitle),
-        ),
-        actions: [
-          _LanguageMenu(),
-          if (auth.isSignedIn)
-            PopupMenuButton<String>(
-              tooltip: l10n.profile,
-              icon: CircleAvatar(
-                child: Text((auth.email ?? '?').substring(0, 1).toUpperCase()),
-              ),
-              onSelected: (value) {
-                if (value == 'settings') _showSettings(context);
-                if (value == 'logout') context.read<AuthController>().signOut();
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(enabled: false, child: Text(auth.email ?? '')),
-                PopupMenuItem(
-                  value: 'settings',
-                  child: Text(
-                    auth.language == 'de' ? 'Einstellungen' : 'Settings',
-                  ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 1000) return child;
+          final destinations = [
+            (l10n.home, Icons.home_outlined, Icons.home, '/'),
+            (l10n.tournaments, Icons.emoji_events_outlined, Icons.emoji_events, '/tournaments'),
+            (l10n.players, Icons.group_outlined, Icons.group, '/players'),
+            (l10n.marketplace, Icons.storefront_outlined, Icons.storefront, '/marketplace'),
+          ];
+          final selectedIndex = destinations.indexWhere(
+            (destination) => destination.$4 == '/'
+                ? path == '/'
+                : path.startsWith(destination.$4),
+          );
+          return Row(
+            children: [
+              NavigationRail(
+                selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
+                labelType: NavigationRailLabelType.all,
+                minWidth: 104,
+                leading: const Padding(
+                  padding: EdgeInsets.only(top: 12, bottom: 20),
+                  child: Icon(Icons.sports_score, color: _curlingBlue, size: 30),
                 ),
-                PopupMenuItem(value: 'logout', child: Text(l10n.logout)),
-              ],
-            )
-          else ...[
-            TextButton(
-              onPressed: () => context.go('/login'),
-              child: Text(l10n.login),
-            ),
-            FilledButton(
-              onPressed: () => context.go('/register'),
-              child: Text(l10n.register),
-            ),
-          ],
-        ],
+                destinations: [
+                  for (final destination in destinations)
+                    NavigationRailDestination(
+                      icon: Icon(destination.$2),
+                      selectedIcon: Icon(destination.$3),
+                      label: Text(destination.$1),
+                    ),
+                ],
+                onDestinationSelected: (index) => context.go(destinations[index].$4),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: child),
+            ],
+          );
+        },
       ),
-      body: child,
     );
   }
 }
@@ -534,49 +611,91 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(l10n.welcome, style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 8),
-        Text(l10n.publicIntro),
-        const SizedBox(height: 28),
-        LayoutBuilder(
-          builder: (context, constraints) => Wrap(
-            spacing: 20,
-            runSpacing: 20,
-            children: [
-              _FeatureCard(
-                title: l10n.tournaments,
-                description: l10n.tournamentsIntro,
-                imageAsset: 'assets/tournaments.png',
-                route: '/tournaments',
-                width: constraints.maxWidth > 900
-                    ? (constraints.maxWidth - 40) / 3
-                    : 360,
+    return LayoutBuilder(
+      builder: (context, constraints) => ListView(
+        padding: EdgeInsets.all(constraints.maxWidth < 600 ? 16 : 32),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: 12,
+                      children: [
+                        Text(
+                          'CURLING COMPANION',
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: _curlingBlue,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const _PageHeaderControls(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.welcome,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.publicIntro,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: _granite,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  LayoutBuilder(
+                    builder: (context, cardConstraints) => Wrap(
+                      spacing: 20,
+                      runSpacing: 20,
+                      children: [
+                        _FeatureCard(
+                          title: l10n.tournaments,
+                          description: l10n.tournamentsIntro,
+                          imageAsset: 'assets/tournaments.png',
+                          route: '/tournaments',
+                          width: cardConstraints.maxWidth > 900
+                              ? (cardConstraints.maxWidth - 40) / 3
+                              : cardConstraints.maxWidth,
+                        ),
+                        _FeatureCard(
+                          title: l10n.players,
+                          description: l10n.playersIntro,
+                          imageAsset: 'assets/player_search.png',
+                          route: '/players',
+                          width: cardConstraints.maxWidth > 900
+                              ? (cardConstraints.maxWidth - 40) / 3
+                              : cardConstraints.maxWidth,
+                        ),
+                        _FeatureCard(
+                          title: l10n.marketplace,
+                          description: l10n.marketplaceIntro,
+                          imageAsset: 'assets/marketplace.png',
+                          route: '/marketplace',
+                          width: cardConstraints.maxWidth > 900
+                              ? (cardConstraints.maxWidth - 40) / 3
+                              : cardConstraints.maxWidth,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              _FeatureCard(
-                title: l10n.players,
-                description: l10n.playersIntro,
-                imageAsset: 'assets/player_search.png',
-                route: '/players',
-                width: constraints.maxWidth > 900
-                    ? (constraints.maxWidth - 40) / 3
-                    : 360,
-              ),
-              _FeatureCard(
-                title: l10n.marketplace,
-                description: l10n.marketplaceIntro,
-                imageAsset: 'assets/marketplace.png',
-                route: '/marketplace',
-                width: constraints.maxWidth > 900
-                    ? (constraints.maxWidth - 40) / 3
-                    : 360,
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -793,22 +912,23 @@ class _MarketplacePageState extends State<MarketplacePage> {
     return PageFrame(
       title: l10n.marketplace,
       intro: l10n.marketplaceIntro,
-      action: canEdit
-          ? FilledButton.icon(
-              onPressed: () => _createListing(context),
-              icon: const Icon(Icons.add),
-              label: Text(l10n.createListing),
-            )
-          : null,
       child: StreamBuilder<List<MarketplaceListing>>(
         stream: context.read<MarketplaceRepository>().watchListings(),
         builder: (_, snapshot) {
           final listings = _filtered(snapshot.data ?? const []);
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _MarketplaceFilters(
                 category: _category,
                 onCategoryChanged: (value) => setState(() => _category = value),
+                action: canEdit
+                    ? FilledButton.icon(
+                        onPressed: () => _createListing(context),
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.createListing),
+                      )
+                    : null,
               ),
               _listingFeed(snapshot, listings),
             ],
@@ -826,7 +946,9 @@ class _MarketplacePageState extends State<MarketplacePage> {
     AsyncSnapshot<List<MarketplaceListing>> snapshot,
     List<MarketplaceListing> listings,
   ) {
-    if (snapshot.hasError) return const Text('Unable to load data.');
+    if (snapshot.hasError) {
+      return Text(AppLocalizations.of(context).unableToLoadData);
+    }
     if (!snapshot.hasData) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -883,16 +1005,16 @@ class _MarketplacePageState extends State<MarketplacePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete listing?'),
-        content: const Text('This action cannot be undone.'),
+        title: Text(AppLocalizations.of(context).deleteListing),
+        content: Text(AppLocalizations.of(context).deleteListingMessage),
         actions: [
           TextButton(
             onPressed: () => context.pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => context.pop(true),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context).deleteListing),
           ),
         ],
       ),
@@ -969,17 +1091,19 @@ class _ListingFeedContent extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(
         children: [
-          Chip(label: Text(listing.category)),
+          Chip(label: Text(_localizedMarketplaceCategory(l10n, listing.category))),
           const Spacer(),
           Text(
             '${listing.price.toStringAsFixed(2)} ${listing.currency}',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
+              color: _warmAmber,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -998,7 +1122,7 @@ class _ListingFeedContent extends StatelessWidget {
           if (listing.listedAt != null)
             _ListingMeta(
               icon: Icons.calendar_today_outlined,
-              text: DateFormat.yMMMd().format(listing.listedAt!),
+              text: _formatDate(context, listing.listedAt!),
             ),
           if (listing.sellerName.isNotEmpty)
             _ListingMeta(icon: Icons.person_outline, text: listing.sellerName),
@@ -1012,17 +1136,17 @@ class _ListingFeedContent extends StatelessWidget {
           FilledButton.tonalIcon(
             onPressed: onDetails,
             icon: const Icon(Icons.open_in_new),
-            label: const Text('View details'),
+            label: Text(l10n.viewDetails),
           ),
           _MarketplaceContactButton(contact: listing.sellerContact),
           if (isOwner) ...[
             IconButton(
-              tooltip: 'Edit listing',
+              tooltip: l10n.editListing,
               onPressed: onEdit,
               icon: const Icon(Icons.edit_outlined),
             ),
             IconButton(
-              tooltip: 'Delete listing',
+              tooltip: l10n.deleteListing,
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline),
             ),
@@ -1031,6 +1155,7 @@ class _ListingFeedContent extends StatelessWidget {
       ),
     ],
   );
+  }
 }
 
 class _ListingMeta extends StatelessWidget {
@@ -1110,12 +1235,23 @@ IconData _categoryIcon(String category) => switch (category) {
   _ => Icons.inventory_2_outlined,
 };
 
+String _localizedMarketplaceCategory(
+  AppLocalizations l10n,
+  String category,
+) => switch (category) {
+  'shoes' => l10n.shoes,
+  'stones' => l10n.stones,
+  'brooms' => l10n.brooms,
+  _ => l10n.other,
+};
+
 class _MarketplaceContactButton extends StatelessWidget {
   const _MarketplaceContactButton({required this.contact});
   final String contact;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(contact);
     if (contact.trim().isEmpty) return const SizedBox.shrink();
     return OutlinedButton.icon(
@@ -1123,7 +1259,7 @@ class _MarketplaceContactButton extends StatelessWidget {
         Uri(scheme: isEmail ? 'mailto' : 'tel', path: contact.trim()),
       ),
       icon: Icon(isEmail ? Icons.email_outlined : Icons.phone_outlined),
-      label: Text(isEmail ? 'Email seller' : 'Call seller'),
+      label: Text(isEmail ? l10n.emailSeller : l10n.callSeller),
     );
   }
 }
@@ -1133,7 +1269,9 @@ class _MarketplaceListingDetailsDialog extends StatelessWidget {
   final MarketplaceListing listing;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
     title: Text(listing.title),
     content: SizedBox(
       width: 760,
@@ -1150,17 +1288,20 @@ class _MarketplaceListingDetailsDialog extends StatelessWidget {
             const SizedBox(height: 12),
             Text(listing.description),
             const SizedBox(height: 20),
-            if (listing.location.isNotEmpty) Text('Location: ${listing.location}'),
-            if (listing.sellerName.isNotEmpty) Text('Seller: ${listing.sellerName}'),
+            if (listing.location.isNotEmpty)
+              Text('${l10n.location}: ${listing.location}'),
+            if (listing.sellerName.isNotEmpty)
+              Text('${l10n.seller}: ${listing.sellerName}'),
           ],
         ),
       ),
     ),
     actions: [
       _MarketplaceContactButton(contact: listing.sellerContact),
-      TextButton(onPressed: () => context.pop(), child: const Text('Close')),
+      TextButton(onPressed: () => context.pop(), child: Text(l10n.close)),
     ],
   );
+  }
 }
 
 class _MarketplaceImageGallery extends StatefulWidget {
@@ -1228,31 +1369,52 @@ class _MarketplaceFilters extends StatelessWidget {
   const _MarketplaceFilters({
     required this.category,
     required this.onCategoryChanged,
+    this.action,
   });
   final String category;
   final ValueChanged<String> onCategoryChanged;
+  final Widget? action;
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: Wrap(
       spacing: 12,
       runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         SizedBox(
           width: 180,
           child: DropdownButtonFormField<String>(
             initialValue: category,
-            decoration: const InputDecoration(labelText: 'Category'),
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('All categories')),
-              DropdownMenuItem(value: 'shoes', child: Text('Shoes')),
-              DropdownMenuItem(value: 'stones', child: Text('Stones')),
-              DropdownMenuItem(value: 'brooms', child: Text('Brooms')),
-              DropdownMenuItem(value: 'other', child: Text('Other')),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).category,
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 'all',
+                child: Text(AppLocalizations.of(context).allCategories),
+              ),
+              DropdownMenuItem(
+                value: 'shoes',
+                child: Text(AppLocalizations.of(context).shoes),
+              ),
+              DropdownMenuItem(
+                value: 'stones',
+                child: Text(AppLocalizations.of(context).stones),
+              ),
+              DropdownMenuItem(
+                value: 'brooms',
+                child: Text(AppLocalizations.of(context).brooms),
+              ),
+              DropdownMenuItem(
+                value: 'other',
+                child: Text(AppLocalizations.of(context).other),
+              ),
             ],
             onChanged: (value) => onCategoryChanged(value!),
           ),
         ),
+        if (action != null) action!,
       ],
     ),
   );
@@ -1308,8 +1470,10 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.initial == null ? 'Create listing' : 'Edit listing'),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+    title: Text(widget.initial == null ? l10n.createListing : l10n.editListing),
     content: SizedBox(
       width: 460,
       child: Form(
@@ -1320,23 +1484,23 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
             children: [
               TextFormField(
                 controller: _title,
-                decoration: const InputDecoration(labelText: 'Title'),
+                decoration: InputDecoration(labelText: l10n.title),
                 validator: _required,
               ),
               TextFormField(
                 controller: _description,
-                decoration: const InputDecoration(labelText: 'Description'),
+                decoration: InputDecoration(labelText: l10n.description),
                 maxLines: 3,
                 validator: _required,
               ),
               DropdownButtonFormField<String>(
                 initialValue: _category,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: const ['shoes', 'stones', 'brooms', 'other']
+                decoration: InputDecoration(labelText: l10n.category),
+                items: ['shoes', 'stones', 'brooms', 'other']
                     .map(
                       (category) => DropdownMenuItem(
                         value: category,
-                        child: Text(category),
+                        child: Text(_localizedMarketplaceCategory(l10n, category)),
                       ),
                     )
                     .toList(),
@@ -1347,14 +1511,14 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _price,
-                      decoration: const InputDecoration(labelText: 'Price'),
+                      decoration: InputDecoration(labelText: l10n.price),
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       validator: (value) =>
                           double.tryParse(value?.replaceAll(',', '.') ?? '') ==
                               null
-                          ? 'Enter a valid price.'
+                          ? l10n.enterValidPrice
                           : null,
                     ),
                   ),
@@ -1363,7 +1527,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                     width: 100,
                     child: TextFormField(
                       controller: _currency,
-                      decoration: const InputDecoration(labelText: 'Currency'),
+                      decoration: InputDecoration(labelText: l10n.currency),
                       textCapitalization: TextCapitalization.characters,
                       validator: _required,
                     ),
@@ -1372,13 +1536,13 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
               ),
               TextFormField(
                 controller: _location,
-                decoration: const InputDecoration(labelText: 'Location'),
+                decoration: InputDecoration(labelText: l10n.location),
                 validator: _required,
               ),
               TextFormField(
                 controller: _contact,
-                decoration: const InputDecoration(
-                  labelText: 'Seller email or phone',
+                decoration: InputDecoration(
+                  labelText: l10n.sellerEmailOrPhone,
                 ),
                 validator: _required,
               ),
@@ -1388,13 +1552,13 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                 child: OutlinedButton.icon(
                   onPressed: _isUploading ? null : _pickImages,
                   icon: const Icon(Icons.add_photo_alternate_outlined),
-                  label: const Text('Add images'),
+                  label: Text(l10n.addImages),
                 ),
               ),
               if (_imageUrls.isEmpty && _newImages.isEmpty)
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Optional. You can attach multiple images.'),
+                  child: Text(l10n.optionalMultipleImages),
                 )
               else
                 Wrap(
@@ -1403,7 +1567,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                   children: [
                     for (var index = 0; index < _imageUrls.length; index++)
                       InputChip(
-                        label: Text('Image ${index + 1}'),
+                        label: Text('${l10n.image} ${index + 1}'),
                         onDeleted: _isUploading
                             ? null
                             : () => setState(() {
@@ -1434,26 +1598,28 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
       ),
     ),
     actions: [
-      TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+      TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
       FilledButton(
         onPressed: _isUploading ? null : _submit,
         child: Text(
           _isUploading
-              ? 'Uploading images…'
+              ? l10n.uploadingImages
               : widget.initial == null
-              ? 'Create listing'
-              : 'Save changes',
+              ? l10n.createListing
+              : l10n.saveChanges,
         ),
       ),
     ],
   );
+  }
 
-  String? _required(String? value) =>
-      value == null || value.trim().isEmpty ? 'This field is required.' : null;
+  String? _required(String? value) => value == null || value.trim().isEmpty
+      ? AppLocalizations.of(context).requiredField
+      : null;
 
   Future<void> _pickImages() async {
     if (Firebase.apps.isEmpty) {
-      setState(() => _uploadError = 'Image uploads require Firebase configuration.');
+      setState(() => _uploadError = AppLocalizations.of(context).imageUploadsRequireFirebase);
       return;
     }
     final result = await FilePicker.platform.pickFiles(
@@ -1516,7 +1682,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
       if (mounted) {
         setState(() {
           _isUploading = false;
-          _uploadError = 'Unable to upload one or more images. Please try again.';
+          _uploadError = AppLocalizations.of(context).imageUploadFailed;
         });
       }
     }
@@ -3369,47 +3535,129 @@ class PageFrame extends StatelessWidget {
   final Widget? action;
   final Widget? titleAction;
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      if (titleAction != null)
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(width: 12),
-                titleAction!,
-              ],
-            ),
-            Text(intro),
-          ],
-        )
-      else
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final padding = constraints.maxWidth < 600 ? 16.0 : 32.0;
+      final pageAction = titleAction ?? action;
+      return ListView(
+        padding: EdgeInsets.all(padding),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: 16,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 760),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                            Text(
+                              'CURLING COMPANION',
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
+                                    color: _curlingBlue,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2,
+                                  ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              title,
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              intro,
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(color: _granite),
+                            ),
+                            ],
+                          ),
+                        ),
+                        _PageHeaderControls(pageAction: pageAction),
+                      ],
+                    ),
                   ),
-                  Text(intro),
+                  const SizedBox(height: 28),
+                  child,
                 ],
               ),
             ),
-            if (action != null) action!,
-          ],
-        ),
-      const SizedBox(height: 20),
-      child,
+          ),
+        ],
+      );
+    },
+  );
+}
+
+class _PageHeaderControls extends StatelessWidget {
+  const _PageHeaderControls({this.pageAction});
+  final Widget? pageAction;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      if (pageAction != null) pageAction!,
+      _LanguageMenu(),
+      _PageAccountMenu(),
     ],
   );
+}
+
+class _PageAccountMenu extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final auth = context.watch<AuthController>();
+    if (!auth.isSignedIn) {
+      return Wrap(
+        spacing: 8,
+        children: [
+          TextButton(
+            onPressed: () => context.go('/login'),
+            child: Text(l10n.login),
+          ),
+          FilledButton(
+            onPressed: () => context.go('/register'),
+            child: Text(l10n.register),
+          ),
+        ],
+      );
+    }
+    return PopupMenuButton<String>(
+      tooltip: l10n.profile,
+      icon: CircleAvatar(
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Theme.of(context).colorScheme.onSecondary,
+        child: Text((auth.email ?? '?').substring(0, 1).toUpperCase()),
+      ),
+      onSelected: (value) {
+        if (value == 'settings') _showSettings(context);
+        if (value == 'logout') context.read<AuthController>().signOut();
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(enabled: false, child: Text(auth.email ?? '')),
+        PopupMenuItem(
+          value: 'settings',
+          child: Text(auth.language == 'de' ? 'Einstellungen' : 'Settings'),
+        ),
+        PopupMenuItem(value: 'logout', child: Text(l10n.logout)),
+      ],
+    );
+  }
 }
 
 class _ListState<T> extends StatelessWidget {

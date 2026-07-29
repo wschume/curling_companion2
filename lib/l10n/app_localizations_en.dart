@@ -354,4 +354,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unableToLoadData => 'Unable to load data.';
+
+  @override
+  String get category => 'Category';
+
+  @override
+  String get allCategories => 'All categories';
+
+  @override
+  String get shoes => 'Shoes';
+
+  @override
+  String get stones => 'Stones';
+
+  @override
+  String get brooms => 'Brooms';
+
+  @override
+  String get other => 'Other';
+
+  @override
+  String get title => 'Title';
+
+  @override
+  String get description => 'Description';
+
+  @override
+  String get viewDetails => 'View details';
+
+  @override
+  String get emailSeller => 'Email seller';
+
+  @override
+  String get callSeller => 'Call seller';
+
+  @override
+  String get seller => 'Seller';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get editListing => 'Edit listing';
+
+  @override
+  String get deleteListing => 'Delete listing?';
+
+  @override
+  String get deleteListingMessage => 'This action cannot be undone.';
+
+  @override
+  String get sellerEmailOrPhone => 'Seller email or phone';
+
+  @override
+  String get addImages => 'Add images';
+
+  @override
+  String get optionalMultipleImages =>
+      'Optional. You can attach multiple images.';
+
+  @override
+  String get image => 'Image';
+
+  @override
+  String get uploadingImages => 'Uploading images…';
+
+  @override
+  String get enterValidPrice => 'Enter a valid price.';
+
+  @override
+  String get imageUploadsRequireFirebase =>
+      'Image uploads require Firebase configuration.';
+
+  @override
+  String get imageUploadFailed =>
+      'Unable to upload one or more images. Please try again.';
 }
