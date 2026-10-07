@@ -64,10 +64,12 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _syncUser();
     unawaited(_loadProfile());
+    unawaited(_loadTerms());
     _subscription = service.authStateChanges.listen((_) {
       if (_disposed) return;
       _syncUser();
       unawaited(_loadProfile());
+      if (!_refreshing) unawaited(_loadTerms());
       notifyListeners();
     });
   }
@@ -77,12 +79,46 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
       _refreshFailed = false;
       verificationError = null;
     }
+    if (_identity != service.currentUserId) {
+      _identity = service.currentUserId;
+      _termsAccepted = false;
+      _termsRevision++;
+      termsError = false;
+    }
     _email = service.currentEmail;
     _verified = service.isEmailVerified;
     if (_email == null) {
       _language = null;
       _telephone = null;
     }
+  }
+
+  Future<void> _loadTerms() async {
+    final id = service.currentUserId;
+    final revision = ++_termsRevision;
+    if (id == null) return;
+    bool accepted;
+    try {
+      accepted = await service.loadTermsAcceptance();
+    } catch (_) {
+      accepted = false;
+    }
+    if (_disposed || id != service.currentUserId || revision != _termsRevision)
+      return;
+    _termsAccepted = accepted;
+    notifyListeners();
+  }
+
+  Future<void> acceptTerms(String languageCode) async {
+    final id = service.currentUserId;
+    if (id == null) throw StateError('Sign in before accepting terms.');
+    ++_termsRevision;
+    await service.acceptTerms(languageCode);
+    if (_disposed || id != service.currentUserId) return;
+    ++_termsRevision;
+    _termsAccepted = true;
+    termsError = false;
+    notifyListeners();
   }
 
   Future<void> _loadProfile() async {
@@ -116,8 +152,14 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
   bool _refreshing = false;
   bool _refreshFailed = false;
   String? verificationError;
+  String? _identity;
+  int _termsRevision = 0;
+  bool _termsAccepted = false;
+  bool termsError = false;
+  bool get hasAcceptedTerms => _termsAccepted;
   bool get isEmailVerified => _verified && !_refreshing && !_refreshFailed;
-  bool get canManageContent => isSignedIn && isEmailVerified;
+  bool get canManageContent =>
+      isSignedIn && isEmailVerified && hasAcceptedTerms;
   late final StreamSubscription<String?> _subscription;
   String? get email => _email;
   String? get language => _language;
@@ -127,16 +169,28 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
   // implementation uses the email as a stable placeholder identity.
   String? get userId => service.currentUserId ?? _email;
 
-  Future<void> signIn(String email, String password) =>
-      service.signIn(email, password);
+  Future<void> signIn(String email, String password) async {
+    await service.signIn(email, password);
+    _syncUser();
+    await _loadTerms();
+  }
+
   Future<void> register(
     String email,
     String password, {
     String languageCode = 'en',
+    required bool acceptedTerms,
   }) async {
+    if (!acceptedTerms)
+      throw StateError('Accept the terms before registering.');
     await service.register(email, password);
     _syncUser();
     verificationError = null;
+    try {
+      await acceptTerms(languageCode);
+    } catch (_) {
+      termsError = true;
+    }
     try {
       await sendVerification(languageCode);
     } catch (_) {
@@ -157,6 +211,7 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
       if (!_disposed) {
         _syncUser();
         _refreshFailed = false;
+        await _loadTerms();
       }
     } catch (_) {
       _verified = false;
@@ -729,6 +784,101 @@ class _LanguageMenu extends StatelessWidget {
   }
 }
 
+class _TermsContent extends StatelessWidget {
+  const _TermsContent();
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SelectionArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.usageTermsTitle,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.usageTermsIntro),
+          const SizedBox(height: 12),
+          for (final prohibition in l10n.usageTermsProhibitions.split('\n'))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('•  '),
+                  Expanded(child: Text(prohibition)),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+          Text(l10n.usageTermsAcceptance),
+          const SizedBox(height: 16),
+          Text(l10n.usageTermsLiability),
+        ],
+      ),
+    );
+  }
+}
+
+class _TermsAcceptanceCheckbox extends StatelessWidget {
+  const _TermsAcceptanceCheckbox({
+    required this.value,
+    required this.onChanged,
+  });
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          label: l10n.termsAcceptLabel,
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged == null
+                ? null
+                : (value) => onChanged!(value ?? false),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: onChanged == null ? null : () => onChanged!(!value),
+                child: Text(l10n.termsAcceptLabel),
+              ),
+              TextButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    content: const SizedBox(
+                      width: 640,
+                      child: SingleChildScrollView(child: _TermsContent()),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: Text(l10n.termsClose),
+                      ),
+                    ],
+                  ),
+                ),
+                child: Text(l10n.termsRead),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class ImpressumPage extends StatelessWidget {
   const ImpressumPage({super.key});
 
@@ -750,7 +900,8 @@ class ImpressumPage extends StatelessWidget {
               children: [
                 Text('${l10n.email}: '),
                 TextButton(
-                  onPressed: () => launchUrl(Uri.parse('mailto:info@curlingcompanion.de')),
+                  onPressed: () =>
+                      launchUrl(Uri.parse('mailto:info@curlingcompanion.de')),
                   child: const Text('info@curlingcompanion.de'),
                 ),
               ],
@@ -759,25 +910,7 @@ class ImpressumPage extends StatelessWidget {
             const SizedBox(height: 24),
             Text(l10n.legalResponsible),
             const SizedBox(height: 32),
-            Text(l10n.usageTermsTitle, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 16),
-            Text(l10n.usageTermsIntro),
-            const SizedBox(height: 12),
-            for (final prohibition in l10n.usageTermsProhibitions.split('\n'))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('•  '),
-                    Expanded(child: Text(prohibition)),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
-            Text(l10n.usageTermsAcceptance),
-            const SizedBox(height: 16),
-            Text(l10n.usageTermsLiability),
+            const _TermsContent(),
           ],
         ),
       ),
@@ -943,93 +1076,122 @@ class _AuthPageState extends State<AuthPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
+  bool _acceptedTerms = false;
   bool _busy = false;
   String? _error;
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final auth = context.watch<AuthController>();
+    final retryTerms =
+        widget.register && auth.isSignedIn && !auth.hasAcceptedTerms;
     return Scaffold(
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Card(
-            margin: const EdgeInsets.all(24),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.appTitle,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    TextButton(
-                      onPressed: () => context.go('/'),
-                      child: Text(l10n.home),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(widget.register ? l10n.register : l10n.login),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _email,
-                      decoration: InputDecoration(labelText: l10n.email),
-                      validator: (value) =>
-                          value == null || !value.contains('@')
-                          ? l10n.invalidEmail
-                          : null,
-                    ),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: true,
-                      textInputAction: widget.register
-                          ? TextInputAction.next
-                          : TextInputAction.done,
-                      onFieldSubmitted: (_) {
-                        if (!widget.register && !_busy) _submit();
-                      },
-                      decoration: InputDecoration(labelText: l10n.password),
-                      validator: (value) => value == null || value.length < 6
-                          ? l10n.passwordTooShort
-                          : null,
-                    ),
-                    if (widget.register)
-                      TextFormField(
-                        controller: _confirm,
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) {
-                          if (!_busy) _submit();
-                        },
-                        decoration: InputDecoration(
-                          labelText: l10n.confirmPassword,
-                        ),
-                        validator: (value) => value != _password.text
-                            ? l10n.passwordMismatch
-                            : null,
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Card(
+              margin: const EdgeInsets.all(24),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.appTitle,
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          _error!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+                      TextButton(
+                        onPressed: () => context.go('/'),
+                        child: Text(l10n.home),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(widget.register ? l10n.register : l10n.login),
+                      const SizedBox(height: 24),
+                      if (retryTerms) Text(auth.email ?? ''),
+                      if (!retryTerms)
+                        TextFormField(
+                          controller: _email,
+                          decoration: InputDecoration(labelText: l10n.email),
+                          validator: (value) =>
+                              value == null || !value.contains('@')
+                              ? l10n.invalidEmail
+                              : null,
+                        ),
+                      if (!retryTerms)
+                        TextFormField(
+                          controller: _password,
+                          obscureText: true,
+                          textInputAction: widget.register
+                              ? TextInputAction.next
+                              : TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            if (!widget.register && !_busy) _submit();
+                          },
+                          decoration: InputDecoration(labelText: l10n.password),
+                          validator: (value) =>
+                              value == null || value.length < 6
+                              ? l10n.passwordTooShort
+                              : null,
+                        ),
+                      if (widget.register && !retryTerms)
+                        TextFormField(
+                          controller: _confirm,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            if (!_busy) _submit();
+                          },
+                          decoration: InputDecoration(
+                            labelText: l10n.confirmPassword,
+                          ),
+                          validator: (value) => value != _password.text
+                              ? l10n.passwordMismatch
+                              : null,
+                        ),
+                      if (widget.register)
+                        _TermsAcceptanceCheckbox(
+                          value: _acceptedTerms,
+                          onChanged: _busy
+                              ? null
+                              : (value) =>
+                                    setState(() => _acceptedTerms = value),
+                        ),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
                           ),
                         ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: _busy || (widget.register && !_acceptedTerms)
+                            ? null
+                            : _submit,
+                        child: Text(
+                          retryTerms
+                              ? l10n.acceptTermsAction
+                              : widget.register
+                              ? l10n.register
+                              : l10n.login,
+                        ),
                       ),
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: _busy ? null : _submit,
-                      child: Text(widget.register ? l10n.register : l10n.login),
-                    ),
-                    TextButton(
-                      onPressed: () =>
-                          context.go(widget.register ? '/login' : '/register'),
-                      child: Text(widget.register ? l10n.login : l10n.register),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () => context.go(
+                          widget.register ? '/login' : '/register',
+                        ),
+                        child: Text(
+                          widget.register ? l10n.login : l10n.register,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1040,20 +1202,33 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<void> _submit() async {
-    if (_busy) return;
-    if (!_formKey.currentState!.validate()) return;
+    if (_busy || (widget.register && !_acceptedTerms)) return;
+    final auth = context.read<AuthController>();
+    final retryTerms =
+        widget.register && auth.isSignedIn && !auth.hasAcceptedTerms;
+    if (!retryTerms && !_formKey.currentState!.validate()) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final auth = context.read<AuthController>();
-      if (widget.register)
-        await auth.register(_email.text.trim(), _password.text,
-          languageCode: Localizations.localeOf(context).languageCode);
+      if (retryTerms) {
+        await auth.acceptTerms(Localizations.localeOf(context).languageCode);
+      } else if (widget.register)
+        await auth.register(
+          _email.text.trim(),
+          _password.text,
+          languageCode: Localizations.localeOf(context).languageCode,
+          acceptedTerms: _acceptedTerms,
+        );
       else
         await auth.signIn(_email.text.trim(), _password.text);
-      if (mounted) context.go(auth.service.isEmailVerified ? '/' : '/verify-email');
+      if (widget.register && auth.termsError) {
+        if (mounted)
+          setState(() => _error = AppLocalizations.of(context).termsSaveError);
+      } else if (mounted) {
+        context.go(auth.canManageContent ? '/' : '/verify-email');
+      }
     } on FirebaseAuthException catch (error) {
       if (mounted) {
         setState(
@@ -1070,7 +1245,11 @@ class _AuthPageState extends State<AuthPage> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = AppLocalizations.of(context).authError);
+        setState(
+          () => _error = retryTerms
+              ? AppLocalizations.of(context).termsSaveError
+              : AppLocalizations.of(context).authError,
+        );
       }
     }
     if (mounted) setState(() => _busy = false);
@@ -1080,7 +1259,13 @@ class _AuthPageState extends State<AuthPage> {
 bool _allowContentWrite(BuildContext context) {
   final auth = context.read<AuthController>();
   if (auth.canManageContent) return true;
-  context.go(auth.isSignedIn ? '/verify-email' : '/login');
+  context.go(
+    !auth.isSignedIn
+        ? '/login'
+        : !auth.hasAcceptedTerms
+        ? '/register'
+        : '/verify-email',
+  );
   return false;
 }
 
@@ -1090,7 +1275,7 @@ class _VerificationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
-    if (!auth.isSignedIn || auth.isEmailVerified)
+    if (!auth.isSignedIn || auth.canManageContent)
       return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     return Padding(
@@ -1099,10 +1284,20 @@ class _VerificationBanner extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 12,
         children: [
-          Text(l10n.verificationRequired),
+          Text(
+            !auth.hasAcceptedTerms
+                ? l10n.termsRequired
+                : l10n.verificationRequired,
+          ),
           TextButton(
-            onPressed: () => context.go('/verify-email'),
-            child: Text(l10n.verifyEmail),
+            onPressed: () => context.go(
+              !auth.hasAcceptedTerms ? '/register' : '/verify-email',
+            ),
+            child: Text(
+              !auth.hasAcceptedTerms
+                  ? l10n.acceptTermsAction
+                  : l10n.verifyEmail,
+            ),
           ),
         ],
       ),
@@ -1164,7 +1359,11 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
       if (auth.canManageContent) {
         context.go('/');
       } else {
-        setState(() => _message = l10n.verificationPending);
+        setState(
+          () => _message = auth.isEmailVerified
+              ? l10n.termsRequired
+              : l10n.verificationPending,
+        );
       }
     } catch (_) {
       if (mounted) setState(() => _error = l10n.verificationRefreshError);

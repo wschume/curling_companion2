@@ -953,7 +953,7 @@ abstract class AppLocalizations {
   /// No description provided for @verificationComplete.
   ///
   /// In en, this message translates to:
-  /// **'Your email is verified. You can now post and edit content.'**
+  /// **'Your email is verified.'**
   String get verificationComplete;
 
   /// No description provided for @verificationCheck.
@@ -1039,6 +1039,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The website operator excludes all liability for damage or inconvenience resulting from use of the website. For example, liability for lost data is excluded.'**
   String get usageTermsLiability;
+
+  /// No description provided for @termsAcceptLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'I accept the Terms of use.'**
+  String get termsAcceptLabel;
+
+  /// No description provided for @termsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read terms'**
+  String get termsRead;
+
+  /// No description provided for @termsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get termsClose;
+
+  /// No description provided for @termsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept the Terms of use before posting or editing content.'**
+  String get termsRequired;
+
+  /// No description provided for @termsSaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was created, but your acceptance could not be saved. Please retry saving your acceptance.'**
+  String get termsSaveError;
+
+  /// No description provided for @acceptTermsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept terms'**
+  String get acceptTermsAction;
 }
 
 class _AppLocalizationsDelegate

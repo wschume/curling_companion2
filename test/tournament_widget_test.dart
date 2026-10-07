@@ -15,6 +15,7 @@ void main() {
     final authService = LocalAuthService();
     await authService.signIn('owner@example.com', 'password');
     authService.simulateEmailVerification();
+    await authService.acceptTerms('en');
     final auth = AuthController(authService);
 
     await tester.pumpWidget(
@@ -53,6 +54,7 @@ void main() {
     final authService = LocalAuthService();
     await authService.signIn('owner@example.com', 'password');
     authService.simulateEmailVerification();
+    await authService.acceptTerms('en');
     final auth = AuthController(authService);
     final repository = MemoryTournamentRepository();
     await repository.save(

@@ -4,12 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/models.dart';
+import '../terms.dart';
 
 abstract interface class AuthService {
   Stream<String?> get authStateChanges;
   String? get currentEmail;
   String? get currentUserId;
   bool get isEmailVerified;
+  Future<bool> loadTermsAcceptance();
+  Future<void> acceptTerms(String languageCode);
   Future<void> sendEmailVerification(String languageCode);
   Future<void> refreshUser();
   Future<void> signIn(String email, String password);
@@ -40,6 +43,31 @@ class FirebaseAuthService implements AuthService {
 
   @override
   bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
+
+  DocumentReference<Map<String, dynamic>> get _termsRecord => FirebaseFirestore.instance
+      .collection('users').doc(_auth.currentUser!.uid)
+      .collection('termsAcceptances').doc(currentTermsVersion);
+
+  @override
+  Future<bool> loadTermsAcceptance() async {
+    if (_auth.currentUser == null) return false;
+    final data = (await _termsRecord.get()).data();
+    return data?['accepted'] == true && data?['version'] == currentTermsVersion;
+  }
+
+  @override
+  Future<void> acceptTerms(String languageCode) async {
+    final record = _termsRecord;
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      if ((await transaction.get(record)).exists) return;
+      transaction.set(record, {
+        'version': currentTermsVersion,
+        'accepted': true,
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'language': languageCode,
+      });
+    });
+  }
 
   @override
   Future<void> sendEmailVerification(String languageCode) async {
@@ -102,6 +130,7 @@ class LocalAuthService implements AuthService {
   String? _email;
   String? _pendingEmail;
   final _verifiedEmails = <String>{};
+  final _termsAcceptedEmails = <String>{};
   final _controller = StreamController<String?>.broadcast();
 
   @override
@@ -133,6 +162,15 @@ class LocalAuthService implements AuthService {
   bool get isEmailVerified => _verifiedEmails.contains(_email);
 
   @override
+  Future<bool> loadTermsAcceptance() async => _termsAcceptedEmails.contains(_email);
+
+  @override
+  Future<void> acceptTerms(String languageCode) async {
+    if (_email == null) throw StateError('Sign in before accepting terms.');
+    _termsAcceptedEmails.add(_email!);
+  }
+
+  @override
   Future<void> sendEmailVerification(String languageCode) async {}
 
   @override
@@ -143,7 +181,9 @@ class LocalAuthService implements AuthService {
   /// Simulates clicking a verification link when running without Firebase.
   void simulateEmailVerification() {
     if (_email == null) return;
+    final acceptedTerms = _termsAcceptedEmails.contains(_email);
     _email = _pendingEmail ?? _email;
+    if (acceptedTerms) _termsAcceptedEmails.add(_email!);
     _pendingEmail = null;
     _verifiedEmails.add(_email!);
     _controller.add(_email);

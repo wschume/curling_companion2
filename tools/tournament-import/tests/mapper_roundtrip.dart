@@ -1,7 +1,7 @@
 // Run with dart --packages=.dart_tool/package_config.json from the repo root.
 import 'dart:convert';
 import 'dart:io';
-import '../../../lib/models/models.dart';
+import 'package:curling_companion/models/models.dart';
 
 void main(List<String> args) {
   final data = jsonDecode(File(args.single).readAsStringSync()) as Map<String, dynamic>;
@@ -12,5 +12,5 @@ void main(List<String> args) {
       throw StateError('$key did not round-trip: ${data[key]} -> ${encoded[key]}');
     }
   }
-  print('Python document round-trips through TournamentMapper.');
+  stdout.writeln('Python document round-trips through TournamentMapper.');
 }

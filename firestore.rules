@@ -3,16 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /marketplaceListings/{listingId} {
       allow read: if true;
-      allow create: if isVerified() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isVerified() && resource.data.ownerId == request.auth.uid
+      allow create: if canPost() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if canPost() && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId;
       allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /tournaments/{tournamentId} {
       allow read: if true;
-      allow create: if isVerified() && request.resource.data.organizerId == request.auth.uid;
-      allow update: if isVerified()
+      allow create: if canPost() && request.resource.data.organizerId == request.auth.uid;
+      allow update: if canPost()
         && resource.data.organizerId == request.auth.uid
         && request.resource.data.organizerId == resource.data.organizerId;
       allow delete: if isSignedIn()
@@ -22,24 +22,24 @@ service cloud.firestore {
 
     match /playerAvailability/{playerId} {
       allow read: if true;
-      allow create: if isVerified() && request.resource.data.userId == request.auth.uid;
-      allow update: if isVerified() && resource.data.userId == request.auth.uid
+      allow create: if canPost() && request.resource.data.userId == request.auth.uid;
+      allow update: if canPost() && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId;
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /teamPlayerSearches/{searchId} {
       allow read: if true;
-      allow create: if isVerified() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isVerified() && resource.data.ownerId == request.auth.uid
+      allow create: if canPost() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if canPost() && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId;
       allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /playerTeamSearches/{searchId} {
       allow read: if true;
-      allow create: if isVerified() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isVerified() && resource.data.ownerId == request.auth.uid
+      allow create: if canPost() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if canPost() && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId;
       allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
@@ -49,6 +49,24 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    match /users/{userId}/termsAcceptances/{version} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId
+        && version == '2026-10-07'
+        && request.resource.data.keys().hasOnly(['version', 'accepted', 'acceptedAt', 'language'])
+        && request.resource.data.version == version
+        && request.resource.data.accepted == true
+        && request.resource.data.acceptedAt == request.time
+        && request.resource.data.language in ['en', 'de'];
+      allow update, delete: if false;
+    }
+
+    function canPost() {
+      return isVerified()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/termsAcceptances/2026-10-07)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/termsAcceptances/2026-10-07).data.accepted == true
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/termsAcceptances/2026-10-07).data.version == '2026-10-07';
+    }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function isSignedIn() { return request.auth != null; }
     function isOrganizer() {
