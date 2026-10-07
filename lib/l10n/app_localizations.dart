@@ -907,6 +907,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to upload one or more images. Please try again.'**
   String get imageUploadFailed;
+
+  /// No description provided for @verifyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify email'**
+  String get verifyEmail;
+
+  /// No description provided for @verificationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email to post or edit content.'**
+  String get verificationRequired;
+
+  /// No description provided for @verificationInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the verification link in your email, then return here and check your status. You can still browse and manage your account.'**
+  String get verificationInstructions;
+
+  /// No description provided for @verificationSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification email sent. Check your inbox and spam folder.'**
+  String get verificationSent;
+
+  /// No description provided for @verificationSendError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send the verification email. Please try resending it. Your account has already been created.'**
+  String get verificationSendError;
+
+  /// No description provided for @verificationRefreshError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check verification. Please try again.'**
+  String get verificationRefreshError;
+
+  /// No description provided for @verificationPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Your email is not verified yet. Open the email link, then check again.'**
+  String get verificationPending;
+
+  /// No description provided for @verificationComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Your email is verified. You can now post and edit content.'**
+  String get verificationComplete;
+
+  /// No description provided for @verificationCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve verified my email'**
+  String get verificationCheck;
+
+  /// No description provided for @verificationResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend verification email'**
+  String get verificationResend;
+
+  /// No description provided for @verificationWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait 60 seconds before sending another email.'**
+  String get verificationWait;
+
+  /// No description provided for @verificationSimulate.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulate verification (local demo)'**
+  String get verificationSimulate;
+
+  /// No description provided for @emailChangePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your new email address for a confirmation link. Your current address remains active until confirmed.'**
+  String get emailChangePending;
 }
 
 class _AppLocalizationsDelegate
