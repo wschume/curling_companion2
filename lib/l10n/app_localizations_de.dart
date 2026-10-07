@@ -435,4 +435,52 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get imageUploadFailed =>
       'Ein oder mehrere Bilder konnten nicht hochgeladen werden. Bitte versuche es erneut.';
+
+  @override
+  String get verifyEmail => 'E-Mail bestätigen';
+
+  @override
+  String get verificationRequired =>
+      'Bestätige deine E-Mail-Adresse, um Inhalte zu erstellen oder zu bearbeiten.';
+
+  @override
+  String get verificationInstructions =>
+      'Öffne den Bestätigungslink in deiner E-Mail und prüfe danach hier deinen Status. Du kannst weiterhin Inhalte ansehen und dein Konto verwalten.';
+
+  @override
+  String get verificationSent =>
+      'Bestätigungs-E-Mail gesendet. Prüfe deinen Posteingang und Spam-Ordner.';
+
+  @override
+  String get verificationSendError =>
+      'Die Bestätigungs-E-Mail konnte nicht gesendet werden. Versuche es erneut. Dein Konto wurde bereits erstellt.';
+
+  @override
+  String get verificationRefreshError =>
+      'Der Bestätigungsstatus konnte nicht geprüft werden. Versuche es erneut.';
+
+  @override
+  String get verificationPending =>
+      'Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und prüfe erneut.';
+
+  @override
+  String get verificationComplete =>
+      'Deine E-Mail-Adresse ist bestätigt. Du kannst jetzt Inhalte erstellen und bearbeiten.';
+
+  @override
+  String get verificationCheck => 'Ich habe meine E-Mail bestätigt';
+
+  @override
+  String get verificationResend => 'Bestätigungs-E-Mail erneut senden';
+
+  @override
+  String get verificationWait =>
+      'Bitte warte 60 Sekunden, bevor du eine weitere E-Mail sendest.';
+
+  @override
+  String get verificationSimulate => 'Bestätigung simulieren (lokale Demo)';
+
+  @override
+  String get emailChangePending =>
+      'Prüfe deine neue E-Mail-Adresse auf einen Bestätigungslink. Bis zur Bestätigung bleibt deine bisherige Adresse aktiv.';
 }

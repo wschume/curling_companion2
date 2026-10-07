@@ -1,5 +1,5 @@
 {
-  "dart.flutterSdkPath": "/home/niklas/snap/flutter/common/flutter",
+  "dart.flutterSdkPath": "/home/niklas/flutter",
   "dart.env": {
     "CHROME_EXECUTABLE": "/opt/google/chrome/google-chrome",
     "JAVA_HOME": "/usr/lib/jvm/java-1.17.0-openjdk-amd64"

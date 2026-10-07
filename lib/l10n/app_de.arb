@@ -138,6 +138,18 @@
   "uploadingImages": "Bilder werden hochgeladen…",
   "enterValidPrice": "Gib einen gültigen Preis ein.",
   "imageUploadsRequireFirebase": "Für Bilduploads ist eine Firebase-Konfiguration erforderlich.",
-  "imageUploadFailed": "Ein oder mehrere Bilder konnten nicht hochgeladen werden. Bitte versuche es erneut."
-
+  "imageUploadFailed": "Ein oder mehrere Bilder konnten nicht hochgeladen werden. Bitte versuche es erneut.",
+  "verifyEmail": "E-Mail bestätigen",
+  "verificationRequired": "Bestätige deine E-Mail-Adresse, um Inhalte zu erstellen oder zu bearbeiten.",
+  "verificationInstructions": "Öffne den Bestätigungslink in deiner E-Mail und prüfe danach hier deinen Status. Du kannst weiterhin Inhalte ansehen und dein Konto verwalten.",
+  "verificationSent": "Bestätigungs-E-Mail gesendet. Prüfe deinen Posteingang und Spam-Ordner.",
+  "verificationSendError": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Versuche es erneut. Dein Konto wurde bereits erstellt.",
+  "verificationRefreshError": "Der Bestätigungsstatus konnte nicht geprüft werden. Versuche es erneut.",
+  "verificationPending": "Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und prüfe erneut.",
+  "verificationComplete": "Deine E-Mail-Adresse ist bestätigt. Du kannst jetzt Inhalte erstellen und bearbeiten.",
+  "verificationCheck": "Ich habe meine E-Mail bestätigt",
+  "verificationResend": "Bestätigungs-E-Mail erneut senden",
+  "verificationWait": "Bitte warte 60 Sekunden, bevor du eine weitere E-Mail sendest.",
+  "verificationSimulate": "Bestätigung simulieren (lokale Demo)",
+  "emailChangePending": "Prüfe deine neue E-Mail-Adresse auf einen Bestätigungslink. Bis zur Bestätigung bleibt deine bisherige Adresse aktiv."
 }

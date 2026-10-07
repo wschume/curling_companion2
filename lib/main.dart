@@ -59,22 +59,65 @@ Future<void> main() async {
   );
 }
 
-class AuthController extends ChangeNotifier {
+class AuthController extends ChangeNotifier with WidgetsBindingObserver {
   AuthController(this.service) {
-    _email = service.currentEmail;
-    _subscription = service.authStateChanges.listen((email) async {
+    WidgetsBinding.instance.addObserver(this);
+    _syncUser();
+    unawaited(_loadProfile());
+    _subscription = service.authStateChanges.listen((_) {
       if (_disposed) return;
-      _email = email;
-      if (email != null) _language = await service.loadLanguage();
-      if (_disposed) return;
+      _syncUser();
+      unawaited(_loadProfile());
       notifyListeners();
     });
   }
+
+  void _syncUser() {
+    if (_email != service.currentEmail) {
+      _refreshFailed = false;
+      verificationError = null;
+    }
+    _email = service.currentEmail;
+    _verified = service.isEmailVerified;
+    if (_email == null) {
+      _language = null;
+      _telephone = null;
+    }
+  }
+
+  Future<void> _loadProfile() async {
+    final id = service.currentUserId;
+    if (id == null) return;
+    try {
+      final language = await service.loadLanguage();
+      final telephone = await service.loadTelephone();
+      if (_disposed || id != service.currentUserId) return;
+      _language = language;
+      _telephone = telephone;
+      notifyListeners();
+    } catch (_) {
+      // Profile loading must not prevent sign-in or verification.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && isSignedIn) {
+      unawaited(refreshUser().catchError((Object _) {}));
+    }
+  }
+
   final AuthService service;
   String? _email;
   String? _language;
   String? _telephone;
   bool _disposed = false;
+  bool _verified = false;
+  bool _refreshing = false;
+  bool _refreshFailed = false;
+  String? verificationError;
+  bool get isEmailVerified => _verified && !_refreshing && !_refreshFailed;
+  bool get canManageContent => isSignedIn && isEmailVerified;
   late final StreamSubscription<String?> _subscription;
   String? get email => _email;
   String? get language => _language;
@@ -86,12 +129,49 @@ class AuthController extends ChangeNotifier {
 
   Future<void> signIn(String email, String password) =>
       service.signIn(email, password);
-  Future<void> register(String email, String password) =>
-      service.register(email, password);
+  Future<void> register(
+    String email,
+    String password, {
+    String languageCode = 'en',
+  }) async {
+    await service.register(email, password);
+    _syncUser();
+    verificationError = null;
+    try {
+      await sendVerification(languageCode);
+    } catch (_) {
+      verificationError = 'send';
+    }
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> sendVerification(String languageCode) =>
+      service.sendEmailVerification(languageCode);
+
+  Future<void> refreshUser() async {
+    if (_refreshing || _disposed) return;
+    _refreshing = true;
+    notifyListeners();
+    try {
+      await service.refreshUser();
+      if (!_disposed) {
+        _syncUser();
+        _refreshFailed = false;
+      }
+    } catch (_) {
+      _verified = false;
+      _refreshFailed = true;
+      rethrow;
+    } finally {
+      _refreshing = false;
+      if (!_disposed) notifyListeners();
+    }
+  }
+
   Future<void> signOut() => service.signOut();
   Future<void> updateEmail(String value) async {
     await service.updateEmail(value);
-    _email = value;
+    _syncUser();
     notifyListeners();
   }
 
@@ -113,6 +193,7 @@ class AuthController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     _subscription.cancel();
     super.dispose();
   }
@@ -155,6 +236,7 @@ class CurlingCompanionApp extends StatelessWidget {
   final PlayerRepository players;
 
   static final _routes = <RouteBase>[
+    GoRoute(path: '/verify-email', builder: (_, _) => const EmailVerificationPage()),
     GoRoute(
       path: '/login',
       pageBuilder: (_, state) => NoTransitionPage<void>(
@@ -392,6 +474,7 @@ Future<void> _showSettings(BuildContext context) async {
   );
   if (language != null && context.mounted) {
     await auth.updateLanguage(language);
+    if (!context.mounted) return;
     context.read<LocaleController>().select(Locale(language));
   }
 }
@@ -438,7 +521,14 @@ class _ProfileSettingsDialogState extends State<_ProfileSettingsDialog> {
       if (password.text.isNotEmpty) await auth.updatePassword(password.text);
       if (telephone.text.trim().isNotEmpty)
         await auth.updateTelephone(telephone.text.trim());
-      if (mounted) Navigator.pop(context, language);
+      if (mounted) {
+        if (email.text.trim() != widget.email) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).emailChangePending)),
+          );
+        }
+        Navigator.pop(context, language);
+      }
     } catch (_) {
       if (mounted)
         setState(
@@ -455,10 +545,12 @@ class _ProfileSettingsDialogState extends State<_ProfileSettingsDialog> {
         .read<TournamentRepository>()
         .watchTournaments()
         .first;
+    if (!mounted) return;
     final listings = await context
         .read<MarketplaceRepository>()
         .watchListings()
         .first;
+    if (!mounted) return;
     final tournamentCount = tournaments
         .where((t) => t.organizerId == id)
         .length;
@@ -541,7 +633,7 @@ class _ProfileSettingsDialogState extends State<_ProfileSettingsDialog> {
             ),
           ),
           DropdownButtonFormField<String>(
-            value: language,
+            initialValue: language,
             decoration: InputDecoration(
               labelText: AppLocalizations.of(context).language,
             ),
@@ -657,6 +749,7 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
+                  const _VerificationBanner(),
                   LayoutBuilder(
                     builder: (context, cardConstraints) => Wrap(
                       spacing: 20,
@@ -870,10 +963,11 @@ class _AuthPageState extends State<AuthPage> {
     try {
       final auth = context.read<AuthController>();
       if (widget.register)
-        await auth.register(_email.text.trim(), _password.text);
+        await auth.register(_email.text.trim(), _password.text,
+          languageCode: Localizations.localeOf(context).languageCode);
       else
         await auth.signIn(_email.text.trim(), _password.text);
-      if (mounted) context.go('/');
+      if (mounted) context.go(auth.service.isEmailVerified ? '/' : '/verify-email');
     } on FirebaseAuthException catch (error) {
       if (mounted) {
         setState(
@@ -897,6 +991,196 @@ class _AuthPageState extends State<AuthPage> {
   }
 }
 
+bool _allowContentWrite(BuildContext context) {
+  final auth = context.read<AuthController>();
+  if (auth.canManageContent) return true;
+  context.go(auth.isSignedIn ? '/verify-email' : '/login');
+  return false;
+}
+
+class _VerificationBanner extends StatelessWidget {
+  const _VerificationBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+    if (!auth.isSignedIn || auth.isEmailVerified)
+      return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        children: [
+          Text(l10n.verificationRequired),
+          TextButton(
+            onPressed: () => context.go('/verify-email'),
+            child: Text(l10n.verifyEmail),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EmailVerificationPage extends StatefulWidget {
+  const EmailVerificationPage({super.key});
+
+  @override
+  State<EmailVerificationPage> createState() => _EmailVerificationPageState();
+}
+
+class _EmailVerificationPageState extends State<EmailVerificationPage> {
+  bool _busy = false;
+  String? _message;
+  String? _error;
+  DateTime? _resendAfter;
+
+  Future<void> _send() async {
+    if (_busy) return;
+    final l10n = AppLocalizations.of(context);
+    if (_resendAfter != null && DateTime.now().isBefore(_resendAfter!)) {
+      setState(() => _error = l10n.verificationWait);
+      return;
+    }
+    final auth = context.read<AuthController>();
+    final language = Localizations.localeOf(context).languageCode;
+    setState(() {
+      _busy = true;
+      _error = null;
+      _message = null;
+    });
+    try {
+      await auth.sendVerification(language);
+      _resendAfter = DateTime.now().add(const Duration(seconds: 60));
+      auth.verificationError = null;
+      if (mounted) setState(() => _message = l10n.verificationSent);
+    } catch (_) {
+      if (mounted) setState(() => _error = l10n.verificationSendError);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _check() async {
+    if (_busy) return;
+    final auth = context.read<AuthController>();
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _busy = true;
+      _error = null;
+      _message = null;
+    });
+    try {
+      await auth.refreshUser();
+      if (!mounted) return;
+      if (auth.canManageContent) {
+        context.go('/');
+      } else {
+        setState(() => _message = l10n.verificationPending);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = l10n.verificationRefreshError);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+    final l10n = AppLocalizations.of(context);
+    final error =
+        _error ??
+        (auth.verificationError != null ? l10n.verificationSendError : null);
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.verifyEmail,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 16),
+                if (auth.isSignedIn) ...[
+                  Text(auth.email ?? ''),
+                  const SizedBox(height: 12),
+                  Text(
+                    auth.isEmailVerified
+                        ? l10n.verificationComplete
+                        : l10n.verificationInstructions,
+                  ),
+                  if (_message != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(_message!),
+                    ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        error,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  if (!auth.isEmailVerified) ...[
+                    FilledButton(
+                      onPressed: _busy ? null : _check,
+                      child: Text(l10n.verificationCheck),
+                    ),
+                    TextButton(
+                      onPressed: _busy ? null : _send,
+                      child: Text(l10n.verificationResend),
+                    ),
+                    if (auth.service is LocalAuthService)
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () {
+                                (auth.service as LocalAuthService)
+                                    .simulateEmailVerification();
+                                _check();
+                              },
+                        child: Text(l10n.verificationSimulate),
+                      ),
+                  ],
+                  TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            await auth.signOut();
+                            if (context.mounted) context.go('/');
+                          },
+                    child: Text(l10n.logout),
+                  ),
+                ] else
+                  FilledButton(
+                    onPressed: () => context.go('/login'),
+                    child: Text(l10n.login),
+                  ),
+                TextButton(
+                  onPressed: () => context.go('/'),
+                  child: Text(l10n.home),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MarketplacePage extends StatefulWidget {
   const MarketplacePage({super.key});
 
@@ -910,7 +1194,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final canEdit = context.watch<AuthController>().isSignedIn;
+    final canEdit = context.watch<AuthController>().canManageContent;
     return PageFrame(
       title: l10n.marketplace,
       intro: l10n.marketplaceIntro,
@@ -977,6 +1261,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
   );
 
   Future<void> _createListing(BuildContext context) async {
+    if (!_allowContentWrite(context)) return;
     final auth = context.read<AuthController>();
     final userId = auth.userId;
     final email = auth.email;
@@ -986,10 +1271,13 @@ class _MarketplacePageState extends State<MarketplacePage> {
       builder: (_) => _MarketplaceListingDialog(ownerId: userId, email: email),
     );
     if (listing == null || !context.mounted) return;
+    if (!_allowContentWrite(context)) return;
     await context.read<MarketplaceRepository>().save(listing);
   }
 
   Future<void> _editListing(MarketplaceListing listing) async {
+    if (!_allowContentWrite(context)) return;
+    if (context.read<AuthController>().userId != listing.ownerId) return;
     final edited = await showDialog<MarketplaceListing>(
       context: context,
       builder: (_) => _MarketplaceListingDialog(
@@ -999,6 +1287,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
       ),
     );
     if (edited == null || !mounted) return;
+    if (!_allowContentWrite(context)) return;
     await context.read<MarketplaceRepository>().save(edited);
   }
 
@@ -1144,7 +1433,7 @@ class _ListingFeedContent extends StatelessWidget {
           if (isOwner) ...[
             IconButton(
               tooltip: l10n.editListing,
-              onPressed: onEdit,
+              onPressed: context.watch<AuthController>().canManageContent ? onEdit : null,
               icon: const Icon(Icons.edit_outlined),
             ),
             IconButton(
@@ -1387,6 +1676,7 @@ class _MarketplaceFilters extends StatelessWidget {
         SizedBox(
           width: 180,
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: category,
             decoration: InputDecoration(
               labelText: AppLocalizations.of(context).category,
@@ -1620,6 +1910,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
       : null;
 
   Future<void> _pickImages() async {
+    if (!_allowContentWrite(context)) return;
     if (Firebase.apps.isEmpty) {
       setState(() => _uploadError = AppLocalizations.of(context).imageUploadsRequireFirebase);
       return;
@@ -1637,6 +1928,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   }
 
   Future<void> _submit() async {
+    if (!_allowContentWrite(context)) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final id = widget.initial?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
     setState(() {
@@ -1730,7 +2022,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final canEdit = context.watch<AuthController>().isSignedIn;
+    final canEdit = context.watch<AuthController>().canManageContent;
     final playerRepository = Provider.of<PlayerRepository?>(
       context,
       listen: false,
@@ -1827,7 +2119,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
         _TournamentFeed(
           tournaments: future,
           emptyText: l10n.noFutureTournaments,
-          canEdit: context.read<AuthController>().isSignedIn,
+          canEdit: context.read<AuthController>().canManageContent,
           onEdit: _editTournament,
           onDelete: _deleteTournament,
           tournamentsWithPlayerSearches: tournamentsWithPlayerSearches,
@@ -1856,7 +2148,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
           _TournamentFeed(
             tournaments: past,
             emptyText: l10n.noPastTournaments,
-            canEdit: context.read<AuthController>().isSignedIn,
+            canEdit: context.read<AuthController>().canManageContent,
             onEdit: _editTournament,
             tournamentsWithPlayerSearches: tournamentsWithPlayerSearches,
             tournamentsWithTeamSearches: tournamentsWithTeamSearches,
@@ -1876,6 +2168,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
   }
 
   Future<void> _createTournament() async {
+    if (!_allowContentWrite(context)) return;
     final auth = context.read<AuthController>();
     final userId = auth.userId;
     if (userId == null) {
@@ -1891,7 +2184,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
         organizerId: userId,
       ),
     );
-    if (tournament != null && mounted) {
+    if (tournament != null && mounted && _allowContentWrite(context)) {
       try {
         await context.read<TournamentRepository>().save(tournament);
         if (mounted)
@@ -1910,6 +2203,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
   }
 
   Future<void> _editTournament(Tournament tournament) async {
+    if (!_allowContentWrite(context)) return;
     final auth = context.read<AuthController>();
     if (auth.userId != tournament.organizerId) return;
     final edited = await showDialog<Tournament>(
@@ -1920,7 +2214,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
         organizerId: tournament.organizerId,
       ),
     );
-    if (edited != null && mounted) {
+    if (edited != null && mounted && _allowContentWrite(context)) {
       await context.read<TournamentRepository>().save(edited);
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2211,7 +2505,7 @@ class _TournamentFeed extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final tournament = tournaments[index];
-        final owner = canEdit && auth.userId == tournament.organizerId;
+        final owner = auth.isSignedIn && auth.userId == tournament.organizerId;
         final website = tournament.websiteUrl;
         final location = "${tournament.city}${tournament.country?.isNotEmpty ?? false ? ", ${tournament.country}" : ""}";
         return Card(
@@ -2246,7 +2540,7 @@ class _TournamentFeed extends StatelessWidget {
                         if (website != null && website.isNotEmpty) OutlinedButton.icon(onPressed: () => launchUrl(_websiteUri(website)), icon: const Icon(Icons.language_outlined), label: Text(website)),
                         if (tournamentsWithPlayerSearches.contains(tournament.id)) IconButton(tooltip: l10n.playersSearchingForTeams, onPressed: () => context.go("/players", extra: tournament.id), icon: const Icon(Icons.person_search_outlined)),
                         if (tournamentsWithTeamSearches.contains(tournament.id)) IconButton(tooltip: l10n.teamsSearchingForPlayers, onPressed: () => context.go("/players", extra: tournament.id), icon: const Icon(Icons.groups_outlined)),
-                        if (owner) IconButton(tooltip: l10n.editTournament, onPressed: () => onEdit(tournament), icon: const Icon(Icons.edit_outlined)),
+                        if (owner && canEdit) IconButton(tooltip: l10n.editTournament, onPressed: () => onEdit(tournament), icon: const Icon(Icons.edit_outlined)),
                         if (owner && onDelete != null) IconButton(tooltip: l10n.deleteTournament, onPressed: () => onDelete!(tournament), icon: const Icon(Icons.delete_outline)),
                       ],
                     ),
@@ -2536,6 +2830,7 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
   }
 
   Future<void> _save() async {
+    if (!_allowContentWrite(context)) return;
     final dateError = validateTournamentDateOrder(
       signupDeadline: _signupDeadline,
       startDate: _startDate,
@@ -2772,7 +3067,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(width: 12),
-                    if (context.watch<AuthController>().isSignedIn)
+                    if (context.watch<AuthController>().canManageContent)
                       FilledButton.icon(
                         onPressed: _createSearch,
                         icon: const Icon(Icons.add),
@@ -2793,7 +3088,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(width: 12),
-                    if (context.watch<AuthController>().isSignedIn)
+                    if (context.watch<AuthController>().canManageContent)
                       FilledButton.icon(
                         onPressed: _createTeamSearch,
                         icon: const Icon(Icons.add),
@@ -2845,6 +3140,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
   }
 
   Future<void> _createTeamSearch() async {
+    if (!_allowContentWrite(context)) return;
     final auth = context.read<AuthController>();
     if (auth.userId == null || auth.email == null) return;
     final tournaments = await context
@@ -2861,11 +3157,12 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         tournaments: upcomingTournaments,
       ),
     );
-    if (result != null && mounted)
+    if (result != null && mounted && _allowContentWrite(context))
       await context.read<PlayerRepository>().savePlayerTeamSearch(result);
   }
 
   Future<void> _editTeamSearch(PlayerTeamSearch search) async {
+    if (!_allowContentWrite(context)) return;
     if (context.read<AuthController>().userId != search.ownerId) return;
     final tournaments = await context
         .read<TournamentRepository>()
@@ -2881,7 +3178,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         initial: search,
       ),
     );
-    if (result != null && mounted)
+    if (result != null && mounted && _allowContentWrite(context))
       await context.read<PlayerRepository>().savePlayerTeamSearch(result);
   }
 
@@ -2944,6 +3241,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
   }
 
   Future<void> _createSearch() async {
+    if (!_allowContentWrite(context)) return;
     final auth = context.read<AuthController>();
     if (auth.userId == null || auth.email == null) return;
     final tournaments = await context
@@ -2960,11 +3258,12 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         tournaments: upcomingTournaments,
       ),
     );
-    if (result != null && mounted)
+    if (result != null && mounted && _allowContentWrite(context))
       await context.read<PlayerRepository>().saveTeamSearch(result);
   }
 
   Future<void> _editSearch(TeamPlayerSearch search) async {
+    if (!_allowContentWrite(context)) return;
     if (context.read<AuthController>().userId != search.ownerId) return;
     final tournaments = await context
         .read<TournamentRepository>()
@@ -2980,7 +3279,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         initial: search,
       ),
     );
-    if (result != null && mounted)
+    if (result != null && mounted && _allowContentWrite(context))
       await context.read<PlayerRepository>().saveTeamSearch(result);
   }
 
@@ -3082,7 +3381,7 @@ class _PlayerSearchCard extends StatelessWidget {
               children: [
                 Chip(avatar: const Icon(Icons.sports_outlined, size: 18), label: Text(role)),
                 Chip(avatar: const Icon(Icons.contact_mail_outlined, size: 18), label: SelectableText(contact)),
-                if (isOwner) IconButton(tooltip: l10n.editSearch, onPressed: onEdit, icon: const Icon(Icons.edit_outlined)),
+                if (isOwner && context.watch<AuthController>().canManageContent) IconButton(tooltip: l10n.editSearch, onPressed: context.watch<AuthController>().canManageContent ? onEdit : null, icon: const Icon(Icons.edit_outlined)),
                 if (isOwner) IconButton(tooltip: l10n.deleteSearch, onPressed: onDelete, icon: const Icon(Icons.delete_outline)),
               ],
             ),
@@ -3276,7 +3575,12 @@ class _WriteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FilledButton(
     onPressed: () {
-      if (!context.read<AuthController>().isSignedIn) {
+      final auth = context.read<AuthController>();
+      if (auth.isSignedIn && !auth.canManageContent) {
+        context.go('/verify-email');
+        return;
+      }
+      if (!auth.isSignedIn) {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
@@ -3384,6 +3688,7 @@ class PageFrame extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 28),
+                  const _VerificationBanner(),
                   child,
                 ],
               ),
@@ -3440,11 +3745,13 @@ class _PageAccountMenu extends StatelessWidget {
         child: Text((auth.email ?? '?').substring(0, 1).toUpperCase()),
       ),
       onSelected: (value) {
+        if (value == 'verify') context.go('/verify-email');
         if (value == 'settings') _showSettings(context);
         if (value == 'logout') context.read<AuthController>().signOut();
       },
       itemBuilder: (_) => [
         PopupMenuItem(enabled: false, child: Text(auth.email ?? '')),
+        if (!auth.isEmailVerified) PopupMenuItem(value: 'verify', child: Text(l10n.verifyEmail)),
         PopupMenuItem(
           value: 'settings',
           child: Text(auth.language == 'de' ? 'Einstellungen' : 'Settings'),

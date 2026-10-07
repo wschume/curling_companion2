@@ -429,4 +429,52 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get imageUploadFailed =>
       'Unable to upload one or more images. Please try again.';
+
+  @override
+  String get verifyEmail => 'Verify email';
+
+  @override
+  String get verificationRequired =>
+      'Verify your email to post or edit content.';
+
+  @override
+  String get verificationInstructions =>
+      'Open the verification link in your email, then return here and check your status. You can still browse and manage your account.';
+
+  @override
+  String get verificationSent =>
+      'Verification email sent. Check your inbox and spam folder.';
+
+  @override
+  String get verificationSendError =>
+      'Could not send the verification email. Please try resending it. Your account has already been created.';
+
+  @override
+  String get verificationRefreshError =>
+      'Could not check verification. Please try again.';
+
+  @override
+  String get verificationPending =>
+      'Your email is not verified yet. Open the email link, then check again.';
+
+  @override
+  String get verificationComplete =>
+      'Your email is verified. You can now post and edit content.';
+
+  @override
+  String get verificationCheck => 'I\'ve verified my email';
+
+  @override
+  String get verificationResend => 'Resend verification email';
+
+  @override
+  String get verificationWait =>
+      'Please wait 60 seconds before sending another email.';
+
+  @override
+  String get verificationSimulate => 'Simulate verification (local demo)';
+
+  @override
+  String get emailChangePending =>
+      'Check your new email address for a confirmation link. Your current address remains active until confirmed.';
 }

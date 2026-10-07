@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flutter dependencies",
+      "type": "process",
+      "command": "${config:dart.flutterSdkPath}/bin/flutter",
+      "args": ["pub", "get"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Prepare Flutter app",
+      "type": "process",
+      "command": "${config:dart.flutterSdkPath}/bin/dart",
+      "args": ["run", "build_runner", "build"],
+      "dependsOn": "Flutter dependencies",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -3,14 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /marketplaceListings/{listingId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isVerified() && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /tournaments/{tournamentId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.organizerId == request.auth.uid;
-      allow update: if isSignedIn()
+      allow create: if isVerified() && request.resource.data.organizerId == request.auth.uid;
+      allow update: if isVerified()
         && resource.data.organizerId == request.auth.uid
         && request.resource.data.organizerId == resource.data.organizerId;
       allow delete: if isSignedIn()
@@ -20,20 +22,26 @@ service cloud.firestore {
 
     match /playerAvailability/{playerId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isVerified() && request.resource.data.userId == request.auth.uid;
+      allow update: if isVerified() && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /teamPlayerSearches/{searchId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isVerified() && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /playerTeamSearches/{searchId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isVerified() && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /users/{userId} {
@@ -41,6 +49,7 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function isSignedIn() { return request.auth != null; }
     function isOrganizer() {
       return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))

@@ -36,4 +36,5 @@ jobs:
           name: flutter-web
           path: build/web
       - run: npm install --global firebase-tools
-      - run: firebase deploy --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN" --only hosting,firestore,storage
+      - run: npm --prefix functions install --omit=dev
+      - run: firebase deploy --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN" --only hosting,firestore,storage,functions:uploadMarketplaceImage
