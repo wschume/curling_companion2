@@ -146,7 +146,7 @@
   "verificationSendError": "Could not send the verification email. Please try resending it. Your account has already been created.",
   "verificationRefreshError": "Could not check verification. Please try again.",
   "verificationPending": "Your email is not verified yet. Open the email link, then check again.",
-  "verificationComplete": "Your email is verified. You can now post and edit content.",
+  "verificationComplete": "Your email is verified.",
   "verificationCheck": "I've verified my email",
   "verificationResend": "Resend verification email",
   "verificationWait": "Please wait 60 seconds before sending another email.",
@@ -160,5 +160,11 @@
   "usageTermsIntro": "Any use of this website that violates one or more laws of the Federal Republic of Germany is prohibited. In particular, the following are prohibited:",
   "usageTermsProhibitions": "Obscene, vulgar, or violent posts\nFalse or misleading content\nViolations of the law\nSpamming or scamming the service or other users\nHacking or manipulating the website or app\nCopyright infringement\nHarassment of other users\nStalking other users",
   "usageTermsAcceptance": "By using this website, you accept these rules.",
-  "usageTermsLiability": "The website operator excludes all liability for damage or inconvenience resulting from use of the website. For example, liability for lost data is excluded."
+  "usageTermsLiability": "The website operator excludes all liability for damage or inconvenience resulting from use of the website. For example, liability for lost data is excluded.",
+  "termsAcceptLabel": "I accept the Terms of use.",
+  "termsRead": "Read terms",
+  "termsClose": "Close",
+  "termsRequired": "Accept the Terms of use before posting or editing content.",
+  "termsSaveError": "Your account was created, but your acceptance could not be saved. Please retry saving your acceptance.",
+  "acceptTermsAction": "Accept terms"
 }

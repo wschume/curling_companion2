@@ -458,8 +458,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your email is not verified yet. Open the email link, then check again.';
 
   @override
-  String get verificationComplete =>
-      'Your email is verified. You can now post and edit content.';
+  String get verificationComplete => 'Your email is verified.';
 
   @override
   String get verificationCheck => 'I\'ve verified my email';
@@ -509,4 +508,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get usageTermsLiability =>
       'The website operator excludes all liability for damage or inconvenience resulting from use of the website. For example, liability for lost data is excluded.';
+
+  @override
+  String get termsAcceptLabel => 'I accept the Terms of use.';
+
+  @override
+  String get termsRead => 'Read terms';
+
+  @override
+  String get termsClose => 'Close';
+
+  @override
+  String get termsRequired =>
+      'Accept the Terms of use before posting or editing content.';
+
+  @override
+  String get termsSaveError =>
+      'Your account was created, but your acceptance could not be saved. Please retry saving your acceptance.';
+
+  @override
+  String get acceptTermsAction => 'Accept terms';
 }

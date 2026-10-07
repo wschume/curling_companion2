@@ -464,8 +464,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und prüfe erneut.';
 
   @override
-  String get verificationComplete =>
-      'Deine E-Mail-Adresse ist bestätigt. Du kannst jetzt Inhalte erstellen und bearbeiten.';
+  String get verificationComplete => 'Deine E-Mail-Adresse ist bestätigt.';
 
   @override
   String get verificationCheck => 'Ich habe meine E-Mail bestätigt';
@@ -515,4 +514,24 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get usageTermsLiability =>
       'Der Betreiber der Webseite schließt jede Haftung für durch die Nutzung der Seite entstandene Schäden oder Unannehmlichkeiten aus. Beispielsweise ist die Haftung für verloren gegangene Daten ausgeschlossen.';
+
+  @override
+  String get termsAcceptLabel => 'Ich akzeptiere die Nutzungsbedingungen.';
+
+  @override
+  String get termsRead => 'Nutzungsbedingungen lesen';
+
+  @override
+  String get termsClose => 'Schließen';
+
+  @override
+  String get termsRequired =>
+      'Akzeptiere die Nutzungsbedingungen, bevor du Inhalte erstellst oder bearbeitest.';
+
+  @override
+  String get termsSaveError =>
+      'Dein Konto wurde erstellt, aber deine Zustimmung konnte nicht gespeichert werden. Versuche erneut, deine Zustimmung zu speichern.';
+
+  @override
+  String get acceptTermsAction => 'Nutzungsbedingungen akzeptieren';
 }

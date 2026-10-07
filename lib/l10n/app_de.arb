@@ -146,7 +146,7 @@
   "verificationSendError": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Versuche es erneut. Dein Konto wurde bereits erstellt.",
   "verificationRefreshError": "Der Bestätigungsstatus konnte nicht geprüft werden. Versuche es erneut.",
   "verificationPending": "Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und prüfe erneut.",
-  "verificationComplete": "Deine E-Mail-Adresse ist bestätigt. Du kannst jetzt Inhalte erstellen und bearbeiten.",
+  "verificationComplete": "Deine E-Mail-Adresse ist bestätigt.",
   "verificationCheck": "Ich habe meine E-Mail bestätigt",
   "verificationResend": "Bestätigungs-E-Mail erneut senden",
   "verificationWait": "Bitte warte 60 Sekunden, bevor du eine weitere E-Mail sendest.",
@@ -160,5 +160,11 @@
   "usageTermsIntro": "Jede Nutzung der Webseite in einer Weise, die gegen ein oder mehrere Gesetze der Bundesrepublik Deutschland verstößt, ist untersagt. Insbesondere sind verboten:",
   "usageTermsProhibitions": "Obszöne, grobe oder gewalttätige Beiträge\nFalsche oder irreführende Inhalte\nVerstöße gegen das Gesetz\nSpamming oder Scamming des Dienstes oder anderer Nutzer\nHacking oder Manipulation Ihrer Website oder App\nVerstöße gegen das Urheberrecht\nBelästigung anderer Nutzer\nStalking anderer Nutzer",
   "usageTermsAcceptance": "Mit der Nutzung der Webseite erkennen Sie diese Regeln an.",
-  "usageTermsLiability": "Der Betreiber der Webseite schließt jede Haftung für durch die Nutzung der Seite entstandene Schäden oder Unannehmlichkeiten aus. Beispielsweise ist die Haftung für verloren gegangene Daten ausgeschlossen."
+  "usageTermsLiability": "Der Betreiber der Webseite schließt jede Haftung für durch die Nutzung der Seite entstandene Schäden oder Unannehmlichkeiten aus. Beispielsweise ist die Haftung für verloren gegangene Daten ausgeschlossen.",
+  "termsAcceptLabel": "Ich akzeptiere die Nutzungsbedingungen.",
+  "termsRead": "Nutzungsbedingungen lesen",
+  "termsClose": "Schließen",
+  "termsRequired": "Akzeptiere die Nutzungsbedingungen, bevor du Inhalte erstellst oder bearbeitest.",
+  "termsSaveError": "Dein Konto wurde erstellt, aber deine Zustimmung konnte nicht gespeichert werden. Versuche erneut, deine Zustimmung zu speichern.",
+  "acceptTermsAction": "Nutzungsbedingungen akzeptieren"
 }

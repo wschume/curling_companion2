@@ -285,3 +285,31 @@ npm --prefix functions run test:rules
 
 The rules tests run against the isolated `demo-curling-verification` emulator
 project, using `firebase.test.json`, and do not access the live database.
+
+## Explicit terms acceptance
+
+Registration requires an unchecked **I accept the Terms of use** checkbox.
+The adjacent **Read terms** link opens the same German or English terms shown
+on the legal notice page, without clearing the registration form. The selected
+language is saved with the acceptance.
+
+After account creation, acceptance is recorded at
+`users/{uid}/termsAcceptances/2026-10-07` with `version`, `accepted: true`,
+`acceptedAt` (a Firestore server timestamp), and `language`. Firestore rules
+allow users to create only their own valid current-version record and prohibit
+client updates or deletion. Retries read the existing record and preserve the
+original timestamp. Profile fields cannot grant terms acceptance.
+
+Posting, editing, and image uploads require both verified email and recorded
+acceptance. Browsing, settings, and owned-content deletion remain available.
+If saving acceptance fails after account creation, the registration form
+allows a retry without registering another account. No migration or
+existing-user rollout is implemented; existing accounts will be removed by
+the project owner.
+
+Immutable German and English snapshots are in `docs/terms/2026-10-07.*.md`.
+When changing the terms, archive a new version and update the version in
+`lib/terms.dart`, `firestore.rules`, and `functions/authorization.js` together.
+The backend tests check that these versions and the displayed text agree.
+Deploy the web app, Firestore rules, and `uploadMarketplaceImage` together
+using the deployment command in the email verification section.
