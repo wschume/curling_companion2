@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:curling_companion/main.dart';
 import 'package:curling_companion/models/models.dart';
 import 'package:curling_companion/services/services.dart';
@@ -60,6 +61,43 @@ void main() {
       auth.dispose();
     },
   );
+
+  for (final failSend in [false, true]) {
+    testWidgets(
+      'registration blocks tournament creation (send fails: $failSend)',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(800, 1000));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final service = TestAuthService()..failSend = failSend;
+        await tester.pumpWidget(app(service));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Register'));
+        await tester.pumpAndSettle();
+        final fields = find.byType(TextFormField);
+        await tester.enterText(fields.at(0), 'new@example.com');
+        await tester.enterText(fields.at(1), 'password123');
+        await tester.enterText(fields.at(2), 'password123');
+        await tester.tap(find.widgetWithText(FilledButton, 'Register'));
+        await tester.pumpAndSettle();
+        expect(service.registrations, 1);
+        expect(service.sends, 1);
+        expect(service.isEmailVerified, isFalse);
+        expect(find.byType(EmailVerificationPage), findsOneWidget);
+        if (failSend) {
+          expect(
+            find.textContaining('Could not send the verification email.'),
+            findsOneWidget,
+          );
+        }
+        GoRouter.of(
+          tester.element(find.byType(EmailVerificationPage)),
+        ).go('/tournaments');
+        await tester.pumpAndSettle();
+        expect(find.text('Create tournament'), findsNothing);
+        expect(find.text('Verify email'), findsOneWidget);
+      },
+    );
+  }
 
   test('failed send allows resend without creating another account', () async {
     final service = TestAuthService()..failSend = true;
@@ -215,6 +253,11 @@ void main() {
     expect(find.text('This action cannot be undone.'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Delete listing?'));
     await tester.pumpAndSettle();
-    expect((await marketplace.watchListings().first).any((listing) => listing.id == 'owned'), isFalse);
+    expect(
+      (await marketplace.watchListings().first).any(
+        (listing) => listing.id == 'owned',
+      ),
+      isFalse,
+    );
   });
 }
