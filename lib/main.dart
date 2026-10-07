@@ -2907,6 +2907,8 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
   DateTime? _signupDeadline;
   String _currency = 'EUR';
   String? _dateError;
+  String? _duplicateError;
+  bool _checkingDuplicate = false;
 
   @override
   void initState() {
@@ -2955,119 +2957,132 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('* ${l10n.requiredField}'),
-                const SizedBox(height: 12),
-                _requiredField(_name, l10n.name),
-                _requiredField(_city, l10n.city),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _requiredField(_country, l10n.country),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _requiredField(_club, l10n.club),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(child: _numberField(_fee, l10n.entryFee)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _numberField(
-                        _maxTeams,
-                        l10n.maxTeams,
-                        integer: true,
-                      ),
-                    ),
-                  ],
-                ),
-                DropdownButtonFormField<String>(
-                  initialValue: _currency,
-                  decoration: InputDecoration(labelText: l10n.currency),
-                  items: const [
-                    DropdownMenuItem(value: 'EUR', child: Text('EUR (€)')),
-                    DropdownMenuItem(value: 'USD', child: Text('USD (\$)')),
-                    DropdownMenuItem(value: 'GBP', child: Text('GBP (£)')),
-                    DropdownMenuItem(value: 'CHF', child: Text('CHF')),
-                    DropdownMenuItem(value: 'NOK', child: Text('NOK')),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _currency = value ?? 'EUR'),
-                ),
-                TextFormField(
-                  controller: _contact,
-                  decoration: InputDecoration(
-                    labelText: _requiredLabel(l10n.contact),
-                    hintText: l10n.contactHint,
+            child: AbsorbPointer(
+              absorbing: _checkingDuplicate,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('* ${l10n.requiredField}'),
+                  const SizedBox(height: 12),
+                  _requiredField(_name, l10n.name),
+                  _requiredField(_city, l10n.city),
+                  Row(
+                    children: [
+                      Expanded(child: _requiredField(_country, l10n.country)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _requiredField(_club, l10n.club)),
+                    ],
                   ),
-                  validator: _contactValidator,
-                ),
-                TextFormField(
-                  controller: _website,
-                  decoration: InputDecoration(labelText: l10n.website),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _FormDateButton(
-                      label: _requiredLabel(l10n.startDate),
-                      value: _startDate,
-                      onChanged: (value) => setState(() => _startDate = value!),
-                      referenceDate: _endDate,
-                      initialDate: _dateInRelatedMonth(
-                        _endDate.subtract(const Duration(days: 1)),
+                  Row(
+                    children: [
+                      Expanded(child: _numberField(_fee, l10n.entryFee)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _numberField(
+                          _maxTeams,
+                          l10n.maxTeams,
+                          integer: true,
+                        ),
                       ),
+                    ],
+                  ),
+                  DropdownButtonFormField<String>(
+                    initialValue: _currency,
+                    decoration: InputDecoration(labelText: l10n.currency),
+                    items: const [
+                      DropdownMenuItem(value: 'EUR', child: Text('EUR (€)')),
+                      DropdownMenuItem(value: 'USD', child: Text('USD (\$)')),
+                      DropdownMenuItem(value: 'GBP', child: Text('GBP (£)')),
+                      DropdownMenuItem(value: 'CHF', child: Text('CHF')),
+                      DropdownMenuItem(value: 'NOK', child: Text('NOK')),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _currency = value ?? 'EUR'),
+                  ),
+                  TextFormField(
+                    controller: _contact,
+                    decoration: InputDecoration(
+                      labelText: _requiredLabel(l10n.contact),
+                      hintText: l10n.contactHint,
                     ),
-                    _FormDateButton(
-                      label: _requiredLabel(l10n.endDate),
-                      value: _endDate,
-                      onChanged: (value) => setState(() => _endDate = value!),
-                      referenceDate: _startDate,
-                      initialDate: _dateInRelatedMonth(
-                        _startDate.add(const Duration(days: 1)),
+                    validator: _contactValidator,
+                  ),
+                  TextFormField(
+                    controller: _website,
+                    decoration: InputDecoration(labelText: l10n.website),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _FormDateButton(
+                        label: _requiredLabel(l10n.startDate),
+                        value: _startDate,
+                        onChanged: (value) =>
+                            setState(() => _startDate = value!),
+                        referenceDate: _endDate,
+                        initialDate: _dateInRelatedMonth(
+                          _endDate.subtract(const Duration(days: 1)),
+                        ),
                       ),
-                    ),
-                    _FormDateButton(
-                      label: l10n.signupDeadline,
-                      value: _signupDeadline,
-                      onChanged: (value) =>
-                          setState(() => _signupDeadline = value),
-                      canClear: true,
-                      referenceDate: _startDate,
-                      initialDate: _dateInRelatedMonth(
-                        _startDate.subtract(const Duration(days: 1)),
+                      _FormDateButton(
+                        label: _requiredLabel(l10n.endDate),
+                        value: _endDate,
+                        onChanged: (value) => setState(() => _endDate = value!),
+                        referenceDate: _startDate,
+                        initialDate: _dateInRelatedMonth(
+                          _startDate.add(const Duration(days: 1)),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                if (_dateError != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
+                      _FormDateButton(
+                        label: l10n.signupDeadline,
+                        value: _signupDeadline,
+                        onChanged: (value) =>
+                            setState(() => _signupDeadline = value),
+                        canClear: true,
+                        referenceDate: _startDate,
+                        initialDate: _dateInRelatedMonth(
+                          _startDate.subtract(const Duration(days: 1)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_duplicateError != null)
+                    Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        _dateError!,
+                        _duplicateError!,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),
                     ),
-                  ),
-              ],
+                  if (_dateError != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _dateError!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
       ),
       actions: [
         TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
-        FilledButton(onPressed: _save, child: Text(l10n.saveTournament)),
+        FilledButton(
+          onPressed: _checkingDuplicate ? null : _save,
+          child: Text(l10n.saveTournament),
+        ),
       ],
     );
   }
@@ -3115,7 +3130,7 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
   }
 
   Future<void> _save() async {
-    if (!_allowContentWrite(context)) return;
+    if (_checkingDuplicate || !_allowContentWrite(context)) return;
     final dateError = validateTournamentDateOrder(
       signupDeadline: _signupDeadline,
       startDate: _startDate,
@@ -3170,7 +3185,33 @@ class _TournamentFormDialogState extends State<_TournamentFormDialog> {
           : _contact.text.trim(),
       organizerId: widget.organizerId,
     );
-    if (mounted) context.pop(tournament);
+    if (widget.initial == null) {
+      final l10n = AppLocalizations.of(context);
+      setState(() {
+        _checkingDuplicate = true;
+        _duplicateError = null;
+      });
+      try {
+        final duplicate = await context
+            .read<TournamentRepository>()
+            .hasDuplicate(
+              city: tournament.city,
+              startDate: tournament.startDate,
+            );
+        if (!mounted) return;
+        if (duplicate) {
+          setState(() => _duplicateError = l10n.tournamentAlreadyExists);
+          return;
+        }
+      } catch (_) {
+        if (mounted)
+          setState(() => _duplicateError = l10n.tournamentDuplicateCheckFailed);
+        return;
+      } finally {
+        if (mounted) setState(() => _checkingDuplicate = false);
+      }
+    }
+    if (mounted && _allowContentWrite(context)) context.pop(tournament);
   }
 }
 
