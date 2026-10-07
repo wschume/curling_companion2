@@ -155,6 +155,43 @@ date. Stable IDs prevent competing importer runs from creating duplicates;
 simultaneous manual app creation can still race with the final duplicate check.
 Dates are stored as UTC-midnight ISO strings compatible with the Flutter mapper.
 
+### Windows (PowerShell)
+
+Install Python 3.10+ and the Google Cloud CLI, then open PowerShell in the
+repository root. Use the virtual environment's Python directly; activation is
+not required:
+
+```powershell
+cd tools\tournament-import
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt -c requirements-lock.txt
+.\.venv\Scripts\python.exe import_tournaments.py template tournaments.xlsx
+gcloud auth application-default login
+gcloud auth application-default set-quota-project curling-companion-28e7a
+```
+
+Fill in and save the workbook. Replace `FIREBASE_AUTH_UID` below with the
+organizer's Firebase Auth user ID. Preview and validate with `-n`, then run
+without `-n` and type `IMPORT` when prompted:
+
+```powershell
+.\.venv\Scripts\python.exe import_tournaments.py import tournaments.xlsx -p curling-companion-28e7a -oid FIREBASE_AUTH_UID -n
+.\.venv\Scripts\python.exe import_tournaments.py import tournaments.xlsx -p curling-companion-28e7a -oid FIREBASE_AUTH_UID
+```
+
+If using a service-account key instead of Google login, set its path in the
+same PowerShell session before running the importer:
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\outside-repository\service-account.json"
+```
+
+To switch back to your Google login, clear that override:
+
+```powershell
+Remove-Item Env:GOOGLE_APPLICATION_CREDENTIALS -ErrorAction SilentlyContinue
+```
+
 Tests:
 
 ```sh
