@@ -44,3 +44,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Python tournament importer
+**/.venv/
+tools/tournament-import/venv/
+tools/tournament-import/*.xlsx
+**/__pycache__/
+**/.pytest_cache/
