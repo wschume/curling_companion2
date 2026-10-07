@@ -39,6 +39,7 @@
   "saveTournament": "Save tournament",
   "tournamentSaved": "Tournament saved.",
   "tournamentDeleted": "Tournament deleted.",
+  "tournamentDeleteError": "Could not delete tournament. Please try again.",
   "invalidWebsite": "Enter a valid website URL.",
   "invalidNumber": "Enter a valid number.",
   "noFutureTournaments": "No future tournaments match these filters.",

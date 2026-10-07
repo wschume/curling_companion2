@@ -2532,11 +2532,20 @@ class _TournamentsPageState extends State<TournamentsPage> {
       ),
     );
     if (confirmed == true && mounted) {
-      await context.read<TournamentRepository>().delete(tournament.id);
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.tournamentDeleted)));
+      try {
+        await context.read<TournamentRepository>().delete(tournament.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.tournamentDeleted)),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.tournamentDeleteError)),
+          );
+        }
+      }
     }
   }
 }

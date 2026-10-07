@@ -128,6 +128,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tournamentDeleted => 'Tournament deleted.';
 
   @override
+  String get tournamentDeleteError =>
+      'Could not delete tournament. Please try again.';
+
+  @override
   String get invalidWebsite => 'Enter a valid website URL.';
 
   @override

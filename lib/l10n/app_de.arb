@@ -39,6 +39,7 @@
   "saveTournament": "Turnier speichern",
   "tournamentSaved": "Turnier gespeichert.",
   "tournamentDeleted": "Turnier gelöscht.",
+  "tournamentDeleteError": "Das Turnier konnte nicht gelöscht werden. Bitte versuche es erneut.",
   "invalidWebsite": "Gib eine gültige Webseiten-URL ein.",
   "invalidNumber": "Gib eine gültige Zahl ein.",
   "noFutureTournaments": "Keine kommenden Turniere passen zu den Filtern.",
