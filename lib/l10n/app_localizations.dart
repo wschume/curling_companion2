@@ -332,6 +332,12 @@ abstract class AppLocalizations {
   /// **'Tournament deleted.'**
   String get tournamentDeleted;
 
+  /// No description provided for @tournamentDeleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete tournament. Please try again.'**
+  String get tournamentDeleteError;
+
   /// No description provided for @invalidWebsite.
   ///
   /// In en, this message translates to:

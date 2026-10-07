@@ -129,6 +129,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tournamentDeleted => 'Turnier gelöscht.';
 
   @override
+  String get tournamentDeleteError =>
+      'Das Turnier konnte nicht gelöscht werden. Bitte versuche es erneut.';
+
+  @override
   String get invalidWebsite => 'Gib eine gültige Webseiten-URL ein.';
 
   @override

@@ -16,8 +16,7 @@ service cloud.firestore {
         && resource.data.organizerId == request.auth.uid
         && request.resource.data.organizerId == resource.data.organizerId;
       allow delete: if isSignedIn()
-        && resource.data.organizerId == request.auth.uid
-        && resource.data.endDate > request.time;
+        && resource.data.organizerId == request.auth.uid;
     }
 
     match /playerAvailability/{playerId} {

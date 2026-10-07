@@ -80,3 +80,20 @@ test('an editable profile acceptance flag cannot grant content access', async ()
   await assertSucceeds(setDoc(doc(db, 'users/profile-bypass'), {acceptedTerms: true, termsVersion: currentTermsVersion}));
   await assertFails(setDoc(doc(db, 'marketplaceListings/profile-bypass'), {ownerId: 'profile-bypass'}));
 });
+
+test('tournament deletion accepts app ISO dates and enforces ownership', async () => {
+  const owner = env.authenticatedContext('iso-owner', {email_verified: false}).firestore();
+  const other = env.authenticatedContext('iso-other', {email_verified: true}).firestore();
+  const anonymous = env.unauthenticatedContext().firestore();
+  const path = 'tournaments/iso-date-event';
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), path), {
+      organizerId: 'iso-owner',
+      startDate: '2099-01-01T00:00:00.000',
+      endDate: '2099-01-03T00:00:00.000',
+    });
+  });
+  await assertFails(deleteDoc(doc(anonymous, path)));
+  await assertFails(deleteDoc(doc(other, path)));
+  await assertSucceeds(deleteDoc(doc(owner, path)));
+});
