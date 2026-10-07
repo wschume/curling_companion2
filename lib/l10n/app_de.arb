@@ -151,5 +151,14 @@
   "verificationResend": "Bestätigungs-E-Mail erneut senden",
   "verificationWait": "Bitte warte 60 Sekunden, bevor du eine weitere E-Mail sendest.",
   "verificationSimulate": "Bestätigung simulieren (lokale Demo)",
-  "emailChangePending": "Prüfe deine neue E-Mail-Adresse auf einen Bestätigungslink. Bis zur Bestätigung bleibt deine bisherige Adresse aktiv."
+  "emailChangePending": "Prüfe deine neue E-Mail-Adresse auf einen Bestätigungslink. Bis zur Bestätigung bleibt deine bisherige Adresse aktiv.",
+  "legalNotice": "Impressum",
+  "legalContact": "Kontakt:",
+  "legalPhone": "Telefon: 0152 2563 5091",
+  "legalResponsible": "Inhaltlich Verantwortlicher:\nFlorin Zepernick (Kontakt s. o.)",
+  "usageTermsTitle": "Nutzungsbedingungen",
+  "usageTermsIntro": "Jede Nutzung der Webseite in einer Weise, die gegen ein oder mehrere Gesetze der Bundesrepublik Deutschland verstößt, ist untersagt. Insbesondere sind verboten:",
+  "usageTermsProhibitions": "Obszöne, grobe oder gewalttätige Beiträge\nFalsche oder irreführende Inhalte\nVerstöße gegen das Gesetz\nSpamming oder Scamming des Dienstes oder anderer Nutzer\nHacking oder Manipulation Ihrer Website oder App\nVerstöße gegen das Urheberrecht\nBelästigung anderer Nutzer\nStalking anderer Nutzer",
+  "usageTermsAcceptance": "Mit der Nutzung der Webseite erkennen Sie diese Regeln an.",
+  "usageTermsLiability": "Der Betreiber der Webseite schließt jede Haftung für durch die Nutzung der Seite entstandene Schäden oder Unannehmlichkeiten aus. Beispielsweise ist die Haftung für verloren gegangene Daten ausgeschlossen."
 }

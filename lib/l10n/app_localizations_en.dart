@@ -477,4 +477,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get emailChangePending =>
       'Check your new email address for a confirmation link. Your current address remains active until confirmed.';
+
+  @override
+  String get legalNotice => 'Legal notice';
+
+  @override
+  String get legalContact => 'Contact:';
+
+  @override
+  String get legalPhone => 'Phone: 0152 2563 5091';
+
+  @override
+  String get legalResponsible =>
+      'Responsible for content:\nFlorin Zepernick (contact details above)';
+
+  @override
+  String get usageTermsTitle => 'Terms of use';
+
+  @override
+  String get usageTermsIntro =>
+      'Any use of this website that violates one or more laws of the Federal Republic of Germany is prohibited. In particular, the following are prohibited:';
+
+  @override
+  String get usageTermsProhibitions =>
+      'Obscene, vulgar, or violent posts\nFalse or misleading content\nViolations of the law\nSpamming or scamming the service or other users\nHacking or manipulating the website or app\nCopyright infringement\nHarassment of other users\nStalking other users';
+
+  @override
+  String get usageTermsAcceptance =>
+      'By using this website, you accept these rules.';
+
+  @override
+  String get usageTermsLiability =>
+      'The website operator excludes all liability for damage or inconvenience resulting from use of the website. For example, liability for lost data is excluded.';
 }
