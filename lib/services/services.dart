@@ -9,6 +9,9 @@ abstract interface class AuthService {
   Stream<String?> get authStateChanges;
   String? get currentEmail;
   String? get currentUserId;
+  bool get isEmailVerified;
+  Future<void> sendEmailVerification(String languageCode);
+  Future<void> refreshUser();
   Future<void> signIn(String email, String password);
   Future<void> register(String email, String password);
   Future<void> updateEmail(String email);
@@ -27,13 +30,33 @@ class FirebaseAuthService implements AuthService {
 
   @override
   Stream<String?> get authStateChanges =>
-      _auth.authStateChanges().map((user) => user?.email);
+      _auth.userChanges().map((user) => user?.email);
 
   @override
   String? get currentEmail => _auth.currentUser?.email;
 
   @override
   String? get currentUserId => _auth.currentUser?.uid;
+
+  @override
+  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
+
+  @override
+  Future<void> sendEmailVerification(String languageCode) async {
+    await _auth.setLanguageCode(languageCode);
+    const returnUrl = String.fromEnvironment('EMAIL_VERIFICATION_RETURN_URL');
+    await _auth.currentUser!.sendEmailVerification(
+      returnUrl.isEmpty ? null : ActionCodeSettings(url: returnUrl),
+    );
+  }
+
+  @override
+  Future<void> refreshUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.reload();
+    await _auth.currentUser?.getIdToken(true);
+  }
 
   @override
   Future<void> signIn(String email, String password) =>
@@ -77,6 +100,8 @@ class FirebaseAuthService implements AuthService {
 
 class LocalAuthService implements AuthService {
   String? _email;
+  String? _pendingEmail;
+  final _verifiedEmails = <String>{};
   final _controller = StreamController<String?>.broadcast();
 
   @override
@@ -90,6 +115,7 @@ class LocalAuthService implements AuthService {
 
   @override
   Future<void> signIn(String email, String password) async {
+    if (_email != email) _pendingEmail = null;
     _email = email;
     _controller.add(_email);
   }
@@ -100,7 +126,26 @@ class LocalAuthService implements AuthService {
 
   @override
   Future<void> updateEmail(String email) async {
-    _email = email;
+    _pendingEmail = email;
+  }
+
+  @override
+  bool get isEmailVerified => _verifiedEmails.contains(_email);
+
+  @override
+  Future<void> sendEmailVerification(String languageCode) async {}
+
+  @override
+  Future<void> refreshUser() async {
+    _controller.add(_email);
+  }
+
+  /// Simulates clicking a verification link when running without Firebase.
+  void simulateEmailVerification() {
+    if (_email == null) return;
+    _email = _pendingEmail ?? _email;
+    _pendingEmail = null;
+    _verifiedEmails.add(_email!);
     _controller.add(_email);
   }
 
@@ -124,6 +169,7 @@ class LocalAuthService implements AuthService {
   @override
   Future<void> signOut() async {
     _email = null;
+    _pendingEmail = null;
     _controller.add(null);
   }
 }

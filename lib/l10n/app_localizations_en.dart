@@ -429,4 +429,84 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get imageUploadFailed =>
       'Unable to upload one or more images. Please try again.';
+
+  @override
+  String get verifyEmail => 'Verify email';
+
+  @override
+  String get verificationRequired =>
+      'Verify your email to post or edit content.';
+
+  @override
+  String get verificationInstructions =>
+      'Open the verification link in your email, then return here and check your status. You can still browse and manage your account.';
+
+  @override
+  String get verificationSent =>
+      'Verification email sent. Check your inbox and spam folder.';
+
+  @override
+  String get verificationSendError =>
+      'Could not send the verification email. Please try resending it. Your account has already been created.';
+
+  @override
+  String get verificationRefreshError =>
+      'Could not check verification. Please try again.';
+
+  @override
+  String get verificationPending =>
+      'Your email is not verified yet. Open the email link, then check again.';
+
+  @override
+  String get verificationComplete =>
+      'Your email is verified. You can now post and edit content.';
+
+  @override
+  String get verificationCheck => 'I\'ve verified my email';
+
+  @override
+  String get verificationResend => 'Resend verification email';
+
+  @override
+  String get verificationWait =>
+      'Please wait 60 seconds before sending another email.';
+
+  @override
+  String get verificationSimulate => 'Simulate verification (local demo)';
+
+  @override
+  String get emailChangePending =>
+      'Check your new email address for a confirmation link. Your current address remains active until confirmed.';
+
+  @override
+  String get legalNotice => 'Legal notice';
+
+  @override
+  String get legalContact => 'Contact:';
+
+  @override
+  String get legalPhone => 'Phone: 0152 2563 5091';
+
+  @override
+  String get legalResponsible =>
+      'Responsible for content:\nFlorin Zepernick (contact details above)';
+
+  @override
+  String get usageTermsTitle => 'Terms of use';
+
+  @override
+  String get usageTermsIntro =>
+      'Any use of this website that violates one or more laws of the Federal Republic of Germany is prohibited. In particular, the following are prohibited:';
+
+  @override
+  String get usageTermsProhibitions =>
+      'Obscene, vulgar, or violent posts\nFalse or misleading content\nViolations of the law\nSpamming or scamming the service or other users\nHacking or manipulating the website or app\nCopyright infringement\nHarassment of other users\nStalking other users';
+
+  @override
+  String get usageTermsAcceptance =>
+      'By using this website, you accept these rules.';
+
+  @override
+  String get usageTermsLiability =>
+      'The website operator excludes all liability for damage or inconvenience resulting from use of the website. For example, liability for lost data is excluded.';
 }

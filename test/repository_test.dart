@@ -6,6 +6,7 @@ import 'package:curling_companion/services/services.dart';
 import 'package:curling_companion/main.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   test(
     'local authentication provides an identity for tournament ownership',
     () async {

@@ -14,6 +14,7 @@ void main() {
   ) async {
     final authService = LocalAuthService();
     await authService.signIn('owner@example.com', 'password');
+    authService.simulateEmailVerification();
     final auth = AuthController(authService);
 
     await tester.pumpWidget(
@@ -43,7 +44,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Save tournament'), findsOneWidget);
-    expect(find.text('Club'), findsAtLeastNWidgets(1));
+    expect(find.text('Club *'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('my tournaments toggle filters by the signed-in organizer', (
@@ -51,6 +52,7 @@ void main() {
   ) async {
     final authService = LocalAuthService();
     await authService.signIn('owner@example.com', 'password');
+    authService.simulateEmailVerification();
     final auth = AuthController(authService);
     final repository = MemoryTournamentRepository();
     await repository.save(
