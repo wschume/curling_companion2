@@ -985,6 +985,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check your new email address for a confirmation link. Your current address remains active until confirmed.'**
   String get emailChangePending;
+
+  /// No description provided for @legalNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal notice'**
+  String get legalNotice;
+
+  /// No description provided for @legalContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact:'**
+  String get legalContact;
+
+  /// No description provided for @legalPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone: 0152 2563 5091'**
+  String get legalPhone;
+
+  /// No description provided for @legalResponsible.
+  ///
+  /// In en, this message translates to:
+  /// **'Responsible for content:\nFlorin Zepernick (contact details above)'**
+  String get legalResponsible;
+
+  /// No description provided for @usageTermsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of use'**
+  String get usageTermsTitle;
+
+  /// No description provided for @usageTermsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Any use of this website that violates one or more laws of the Federal Republic of Germany is prohibited. In particular, the following are prohibited:'**
+  String get usageTermsIntro;
+
+  /// No description provided for @usageTermsProhibitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Obscene, vulgar, or violent posts\nFalse or misleading content\nViolations of the law\nSpamming or scamming the service or other users\nHacking or manipulating the website or app\nCopyright infringement\nHarassment of other users\nStalking other users'**
+  String get usageTermsProhibitions;
+
+  /// No description provided for @usageTermsAcceptance.
+  ///
+  /// In en, this message translates to:
+  /// **'By using this website, you accept these rules.'**
+  String get usageTermsAcceptance;
+
+  /// No description provided for @usageTermsLiability.
+  ///
+  /// In en, this message translates to:
+  /// **'The website operator excludes all liability for damage or inconvenience resulting from use of the website. For example, liability for lost data is excluded.'**
+  String get usageTermsLiability;
 }
 
 class _AppLocalizationsDelegate

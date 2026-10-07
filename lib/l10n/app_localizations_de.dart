@@ -483,4 +483,36 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get emailChangePending =>
       'Prüfe deine neue E-Mail-Adresse auf einen Bestätigungslink. Bis zur Bestätigung bleibt deine bisherige Adresse aktiv.';
+
+  @override
+  String get legalNotice => 'Impressum';
+
+  @override
+  String get legalContact => 'Kontakt:';
+
+  @override
+  String get legalPhone => 'Telefon: 0152 2563 5091';
+
+  @override
+  String get legalResponsible =>
+      'Inhaltlich Verantwortlicher:\nFlorin Zepernick (Kontakt s. o.)';
+
+  @override
+  String get usageTermsTitle => 'Nutzungsbedingungen';
+
+  @override
+  String get usageTermsIntro =>
+      'Jede Nutzung der Webseite in einer Weise, die gegen ein oder mehrere Gesetze der Bundesrepublik Deutschland verstößt, ist untersagt. Insbesondere sind verboten:';
+
+  @override
+  String get usageTermsProhibitions =>
+      'Obszöne, grobe oder gewalttätige Beiträge\nFalsche oder irreführende Inhalte\nVerstöße gegen das Gesetz\nSpamming oder Scamming des Dienstes oder anderer Nutzer\nHacking oder Manipulation Ihrer Website oder App\nVerstöße gegen das Urheberrecht\nBelästigung anderer Nutzer\nStalking anderer Nutzer';
+
+  @override
+  String get usageTermsAcceptance =>
+      'Mit der Nutzung der Webseite erkennen Sie diese Regeln an.';
+
+  @override
+  String get usageTermsLiability =>
+      'Der Betreiber der Webseite schließt jede Haftung für durch die Nutzung der Seite entstandene Schäden oder Unannehmlichkeiten aus. Beispielsweise ist die Haftung für verloren gegangene Daten ausgeschlossen.';
 }

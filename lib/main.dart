@@ -265,6 +265,13 @@ class CurlingCompanionApp extends StatelessWidget {
           ),
         ),
         GoRoute(
+          path: '/impressum',
+          pageBuilder: (_, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const ImpressumPage(),
+          ),
+        ),
+        GoRoute(
           path: '/marketplace',
           pageBuilder: (_, state) => NoTransitionPage<void>(
             key: state.pageKey,
@@ -435,12 +442,35 @@ class AppShell extends StatelessWidget {
           return Row(
             children: [
               NavigationRail(
-                selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
+                selectedIndex: selectedIndex < 0 ? null : selectedIndex,
                 labelType: NavigationRailLabelType.all,
                 minWidth: 104,
                 leading: const Padding(
                   padding: EdgeInsets.only(top: 12, bottom: 20),
                   child: Icon(Icons.sports_score, color: _curlingBlue, size: 30),
+                ),
+                trailingAtBottom: true,
+                trailing: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Semantics(
+                    selected: path == '/impressum',
+                    child: TextButton(
+                      onPressed: () => context.go('/impressum'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: path == '/impressum'
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(path == '/impressum' ? Icons.info : Icons.info_outline),
+                          const SizedBox(height: 8),
+                          Text(l10n.legalNotice),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 destinations: [
                   for (final destination in destinations)
@@ -695,6 +725,62 @@ class _LanguageMenu extends StatelessWidget {
           child: const Text('Deutsch'),
         ),
       ],
+    );
+  }
+}
+
+class ImpressumPage extends StatelessWidget {
+  const ImpressumPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PageFrame(
+      title: l10n.legalNotice,
+      intro: '',
+      child: SelectionArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Florin Zepernick\nHolbeinstr. 17a\n12203 Berlin'),
+            const SizedBox(height: 24),
+            Text(l10n.legalContact),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('${l10n.email}: '),
+                TextButton(
+                  onPressed: () => launchUrl(Uri.parse('mailto:info@curlingcompanion.de')),
+                  child: const Text('info@curlingcompanion.de'),
+                ),
+              ],
+            ),
+            Text(l10n.legalPhone),
+            const SizedBox(height: 24),
+            Text(l10n.legalResponsible),
+            const SizedBox(height: 32),
+            Text(l10n.usageTermsTitle, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 16),
+            Text(l10n.usageTermsIntro),
+            const SizedBox(height: 12),
+            for (final prohibition in l10n.usageTermsProhibitions.split('\n'))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('•  '),
+                    Expanded(child: Text(prohibition)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            Text(l10n.usageTermsAcceptance),
+            const SizedBox(height: 16),
+            Text(l10n.usageTermsLiability),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -3711,6 +3797,8 @@ class _PageHeaderControls extends StatelessWidget {
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
       if (pageAction != null) pageAction!,
+      if (MediaQuery.sizeOf(context).width < 1000)
+        TextButton(onPressed: () => context.go('/impressum'), child: Text(AppLocalizations.of(context).legalNotice)),
       _LanguageMenu(),
       _PageAccountMenu(),
     ],
