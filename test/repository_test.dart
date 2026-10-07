@@ -7,6 +7,73 @@ import 'package:curling_companion/main.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  for (final useFirestore in [false, true]) {
+    test(
+      'duplicate matching in ${useFirestore ? "Firestore" : "memory"}',
+      () async {
+        final TournamentRepository repository = useFirestore
+            ? FirestoreTournamentRepository(FakeFirebaseFirestore())
+            : MemoryTournamentRepository();
+        await repository.save(
+          Tournament(
+            id: 'duplicate-test',
+            name: 'Other name',
+            city: '  Oslo ',
+            country: 'Norway',
+            club: 'Other club',
+            organizerId: 'another-owner',
+            startDate: DateTime(2030, 1, 10, 18),
+            endDate: DateTime(2030, 1, 12),
+          ),
+        );
+        for (final city in ['Oslo', ' oslo ', 'OSLO']) {
+          expect(
+            await repository.hasDuplicate(
+              city: city,
+              startDate: DateTime(2030, 1, 10, 9),
+            ),
+            isTrue,
+          );
+        }
+        expect(
+          await repository.hasDuplicate(
+            city: 'Berlin',
+            startDate: DateTime(2030, 1, 10),
+          ),
+          isFalse,
+        );
+        expect(
+          await repository.hasDuplicate(
+            city: 'Oslo',
+            startDate: DateTime(2030, 1, 11),
+          ),
+          isFalse,
+        );
+        expect(
+          await repository.hasDuplicate(
+            city: 'Oslo',
+            startDate: DateTime(2031, 1, 10),
+          ),
+          isFalse,
+        );
+        expect(
+          await repository.hasDuplicate(
+            city: 'Oslo',
+            startDate: DateTime(2030, 2, 10),
+          ),
+          isFalse,
+        );
+        expect(
+          await repository.hasDuplicate(
+            city: 'Oslo',
+            startDate: DateTime(2030, 1, 10, 9).toUtc(),
+          ),
+          isTrue,
+        );
+      },
+    );
+  }
+
   test(
     'local authentication provides an identity for tournament ownership',
     () async {
@@ -39,7 +106,10 @@ void main() {
         title: 'Shoes',
         description: 'Test',
         price: 10,
-        imageUrls: ['https://example.com/shoes.jpg', 'https://example.com/sole.jpg'],
+        imageUrls: [
+          'https://example.com/shoes.jpg',
+          'https://example.com/sole.jpg',
+        ],
         ownerId: 'user-2',
       ),
     );

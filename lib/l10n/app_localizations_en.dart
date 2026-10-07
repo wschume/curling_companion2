@@ -528,4 +528,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get acceptTermsAction => 'Accept terms';
+
+  @override
+  String get tournamentAlreadyExists =>
+      'A tournament already exists in this city on this start date.';
+
+  @override
+  String get tournamentDuplicateCheckFailed =>
+      'Unable to check for an existing tournament. Please try again.';
 }

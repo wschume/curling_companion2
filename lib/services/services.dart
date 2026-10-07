@@ -222,6 +222,7 @@ abstract interface class MarketplaceRepository {
 
 abstract interface class TournamentRepository {
   Stream<List<Tournament>> watchTournaments();
+  Future<bool> hasDuplicate({required String city, required DateTime startDate});
   Future<void> save(Tournament tournament);
   Future<void> delete(String tournamentId);
 }
@@ -275,6 +276,23 @@ class FirestoreTournamentRepository implements TournamentRepository {
             .map((doc) => TournamentMapper.fromMap(doc.data()))
             .toList(),
       );
+
+  @override
+  Future<bool> hasDuplicate({
+    required String city,
+    required DateTime startDate,
+  }) async {
+    final snapshot = await _firestore
+        .collection('tournaments')
+        .get(const GetOptions(source: Source.server));
+    return snapshot.docs.any(
+      (doc) => _matchesTournamentLocationAndDate(
+        TournamentMapper.fromMap(doc.data()),
+        city,
+        startDate,
+      ),
+    );
+  }
 
   @override
   Future<void> save(Tournament tournament) => _firestore
@@ -442,6 +460,14 @@ class MemoryTournamentRepository implements TournamentRepository {
   Stream<List<Tournament>> watchTournaments() =>
       Stream.value(List.unmodifiable(_items));
   @override
+  Future<bool> hasDuplicate({
+    required String city,
+    required DateTime startDate,
+  }) async => _items.any(
+    (item) => _matchesTournamentLocationAndDate(item, city, startDate),
+  );
+
+  @override
   Future<void> save(Tournament tournament) async {
     final index = _items.indexWhere((item) => item.id == tournament.id);
     if (index == -1) {
@@ -531,4 +557,17 @@ class MemoryPlayerRepository implements PlayerRepository {
     _playerTeamSearches.removeWhere((item) => item.id == searchId);
     _playerTeamSearchChanges.add(List.unmodifiable(_playerTeamSearches));
   }
+}
+
+bool _matchesTournamentLocationAndDate(
+  Tournament tournament,
+  String city,
+  DateTime startDate,
+) {
+  final existingDate = tournament.startDate.toLocal();
+  final candidateDate = startDate.toLocal();
+  return tournament.city.trim().toLowerCase() == city.trim().toLowerCase() &&
+      existingDate.year == candidateDate.year &&
+      existingDate.month == candidateDate.month &&
+      existingDate.day == candidateDate.day;
 }

@@ -166,5 +166,7 @@
   "termsClose": "Close",
   "termsRequired": "Accept the Terms of use before posting or editing content.",
   "termsSaveError": "Your account was created, but your acceptance could not be saved. Please retry saving your acceptance.",
-  "acceptTermsAction": "Accept terms"
+  "acceptTermsAction": "Accept terms",
+  "tournamentAlreadyExists": "A tournament already exists in this city on this start date.",
+  "tournamentDuplicateCheckFailed": "Unable to check for an existing tournament. Please try again."
 }

@@ -534,4 +534,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get acceptTermsAction => 'Nutzungsbedingungen akzeptieren';
+
+  @override
+  String get tournamentAlreadyExists =>
+      'In dieser Stadt existiert bereits ein Turnier mit diesem Startdatum.';
+
+  @override
+  String get tournamentDuplicateCheckFailed =>
+      'Vorhandene Turniere konnten nicht geprüft werden. Bitte versuche es erneut.';
 }

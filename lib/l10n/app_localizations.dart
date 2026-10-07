@@ -1075,6 +1075,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Accept terms'**
   String get acceptTermsAction;
+
+  /// No description provided for @tournamentAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A tournament already exists in this city on this start date.'**
+  String get tournamentAlreadyExists;
+
+  /// No description provided for @tournamentDuplicateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to check for an existing tournament. Please try again.'**
+  String get tournamentDuplicateCheckFailed;
 }
 
 class _AppLocalizationsDelegate

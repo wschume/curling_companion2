@@ -166,5 +166,7 @@
   "termsClose": "Schließen",
   "termsRequired": "Akzeptiere die Nutzungsbedingungen, bevor du Inhalte erstellst oder bearbeitest.",
   "termsSaveError": "Dein Konto wurde erstellt, aber deine Zustimmung konnte nicht gespeichert werden. Versuche erneut, deine Zustimmung zu speichern.",
-  "acceptTermsAction": "Nutzungsbedingungen akzeptieren"
+  "acceptTermsAction": "Nutzungsbedingungen akzeptieren",
+  "tournamentAlreadyExists": "In dieser Stadt existiert bereits ein Turnier mit diesem Startdatum.",
+  "tournamentDuplicateCheckFailed": "Vorhandene Turniere konnten nicht geprüft werden. Bitte versuche es erneut."
 }
