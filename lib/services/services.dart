@@ -8,6 +8,7 @@ import '../terms.dart';
 
 abstract interface class AuthService {
   Stream<String?> get authStateChanges;
+  Stream<bool> watchAdminRole();
   String? get currentEmail;
   String? get currentUserId;
   bool get isEmailVerified;
@@ -31,6 +32,14 @@ abstract interface class AuthService {
 class FirebaseAuthService implements AuthService {
   FirebaseAuthService(this._auth);
   final FirebaseAuth _auth;
+
+  @override
+  Stream<bool> watchAdminRole() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value(false);
+    return FirebaseFirestore.instance.collection('adminRoles').doc(uid)
+        .snapshots().map((doc) => doc.data()?['role'] == 'admin');
+  }
 
   @override
   Stream<String?> get authStateChanges =>
@@ -139,6 +148,9 @@ class LocalAuthService implements AuthService {
   final _verifiedEmails = <String>{};
   final _termsAcceptedEmails = <String>{};
   final _controller = StreamController<String?>.broadcast();
+
+  @override
+  Stream<bool> watchAdminRole() => Stream.value(false);
 
   @override
   Stream<String?> get authStateChanges => _controller.stream;

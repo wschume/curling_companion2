@@ -657,4 +657,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get additionalInformationOptional =>
       'Additional information (optional)';
+
+  @override
+  String get contentActionFailed =>
+      'Unable to save or delete this entry. Please try again.';
 }

@@ -669,4 +669,8 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get additionalInformationOptional =>
       'Zusätzliche Informationen (optional)';
+
+  @override
+  String get contentActionFailed =>
+      'Der Eintrag konnte nicht gespeichert oder gelöscht werden. Bitte versuche es erneut.';
 }

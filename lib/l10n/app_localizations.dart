@@ -1303,6 +1303,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Additional information (optional)'**
   String get additionalInformationOptional;
+
+  /// No description provided for @contentActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to save or delete this entry. Please try again.'**
+  String get contentActionFailed;
 }
 
 class _AppLocalizationsDelegate
