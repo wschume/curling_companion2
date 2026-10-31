@@ -1809,7 +1809,12 @@ class _MarketplaceListingFeedCard extends StatelessWidget {
           final image = SizedBox(
             width: constraints.maxWidth >= 700 ? 220 : double.infinity,
             height: 170,
-            child: _MarketplaceImagePreview(listing: listing),
+            child: _MarketplaceDetailsTarget(
+              key: ValueKey('listing-image-${listing.id}'),
+              listing: listing,
+              onDetails: onDetails,
+              child: _MarketplaceImagePreview(listing: listing),
+            ),
           );
           final content = _ListingFeedContent(
             listing: listing,
@@ -1835,6 +1840,37 @@ class _MarketplaceListingFeedCard extends StatelessWidget {
         },
       ),
     ),
+  );
+}
+
+/// Keeps the interaction feedback above images as well as plain text.
+class _MarketplaceDetailsTarget extends StatelessWidget {
+  const _MarketplaceDetailsTarget({
+    super.key,
+    required this.listing,
+    required this.onDetails,
+    required this.child,
+  });
+
+  final MarketplaceListing listing;
+  final VoidCallback onDetails;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      ExcludeSemantics(child: child),
+      Positioned.fill(
+        child: Material(
+          type: MaterialType.transparency,
+          child: Semantics(
+            button: true,
+            label: '${AppLocalizations.of(context).viewDetails}: ${listing.title}',
+            child: InkWell(onTap: onDetails),
+          ),
+        ),
+      ),
+    ],
   );
 }
 
@@ -1876,7 +1912,12 @@ class _ListingFeedContent extends StatelessWidget {
           ),
         ],
       ),
-      Text(listing.title, style: Theme.of(context).textTheme.titleLarge),
+      _MarketplaceDetailsTarget(
+        key: ValueKey('listing-title-${listing.id}'),
+        listing: listing,
+        onDetails: onDetails,
+        child: Text(listing.title, style: Theme.of(context).textTheme.titleLarge),
+      ),
       const SizedBox(height: 6),
       Text(listing.description, maxLines: 4, overflow: TextOverflow.ellipsis),
       const SizedBox(height: 12),
