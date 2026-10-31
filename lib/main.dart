@@ -298,7 +298,10 @@ class CurlingCompanionApp extends StatelessWidget {
   final PlayerRepository players;
 
   static final _routes = <RouteBase>[
-    GoRoute(path: '/verify-email', builder: (_, _) => const EmailVerificationPage()),
+    GoRoute(
+      path: '/verify-email',
+      builder: (_, _) => const EmailVerificationPage(),
+    ),
     GoRoute(
       path: '/login',
       pageBuilder: (_, state) => NoTransitionPage<void>(
@@ -351,9 +354,7 @@ class CurlingCompanionApp extends StatelessWidget {
           path: '/tournaments',
           pageBuilder: (_, state) => NoTransitionPage<void>(
             key: state.pageKey,
-            child: TournamentsPage(
-              initialTournamentId: state.extra as String?,
-            ),
+            child: TournamentsPage(initialTournamentId: state.extra as String?),
           ),
         ),
         GoRoute(
@@ -381,9 +382,11 @@ class CurlingCompanionApp extends StatelessWidget {
     providers: [
       ChangeNotifierProvider(create: (_) => AuthController(auth)),
       ChangeNotifierProvider(create: (_) => LocaleController()),
-      ChangeNotifierProvider(create: (_) => PrivacyNoticeController(
+      ChangeNotifierProvider(
+        create: (_) => PrivacyNoticeController(
         privacyStore ?? SharedPreferencesPrivacyStore(),
-      )),
+        ),
+      ),
       Provider.value(value: marketplace),
       Provider.value(value: tournaments),
       Provider.value(value: players),
@@ -398,7 +401,8 @@ class _AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = ColorScheme.fromSeed(
+    final colors =
+        ColorScheme.fromSeed(
       seedColor: _curlingBlue,
       brightness: Brightness.dark,
     ).copyWith(
@@ -471,7 +475,10 @@ class _AppView extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: _surface,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF49636D)),
@@ -691,7 +698,9 @@ class _ProfileSettingsDialogState extends State<_ProfileSettingsDialog> {
       if (mounted) {
         if (email.text.trim() != widget.email) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context).emailChangePending)),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).emailChangePending),
+            ),
           );
         }
         Navigator.pop(context, language);
@@ -1052,7 +1061,8 @@ class HomePage extends StatelessWidget {
                       children: [
                         Text(
                           'CURLING COMPANION',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
                             color: _curlingBlue,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2,
@@ -1065,16 +1075,16 @@ class HomePage extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     l10n.welcome,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l10n.publicIntro,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: _granite,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(color: _granite),
                   ),
                   const SizedBox(height: 32),
                   const _VerificationBanner(),
@@ -1230,6 +1240,7 @@ class _AuthPageState extends State<AuthPage> {
                               ? l10n.invalidEmail
                               : null,
                         ),
+                      if (!retryTerms) const SizedBox(height: 16),
                       if (!retryTerms)
                         TextFormField(
                           controller: _password,
@@ -1257,6 +1268,8 @@ class _AuthPageState extends State<AuthPage> {
                                 ),
                           child: Text(l10n.forgotPassword),
                         ),
+                      if (widget.register && !retryTerms)
+                        const SizedBox(height: 16),
                       if (widget.register && !retryTerms)
                         TextFormField(
                           controller: _confirm,
@@ -1654,7 +1667,8 @@ class _MarketplacePageState extends State<MarketplacePage> {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) => _MarketplaceListingFeedCard(
         listing: listings[index],
-        isOwner: context.read<AuthController>().userId == listings[index].ownerId,
+        isOwner:
+            context.read<AuthController>().userId == listings[index].ownerId,
         onDetails: () => _showDetails(listings[index]),
         onEdit: () => _editListing(listings[index]),
         onDelete: () => _deleteListing(listings[index]),
@@ -1765,7 +1779,11 @@ class _MarketplaceListingFeedCard extends StatelessWidget {
           }
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [image, const SizedBox(width: 20), Expanded(child: content)],
+            children: [
+              image,
+              const SizedBox(width: 20),
+              Expanded(child: content),
+            ],
           );
         },
       ),
@@ -1796,7 +1814,11 @@ class _ListingFeedContent extends StatelessWidget {
     children: [
       Row(
         children: [
-          Chip(label: Text(_localizedMarketplaceCategory(l10n, listing.category))),
+            Chip(
+              label: Text(
+                _localizedMarketplaceCategory(l10n, listing.category),
+              ),
+            ),
           const Spacer(),
           Text(
             '${listing.price.toStringAsFixed(2)} ${listing.currency}',
@@ -1816,14 +1838,20 @@ class _ListingFeedContent extends StatelessWidget {
         runSpacing: 6,
         children: [
           if (listing.location.isNotEmpty)
-            _ListingMeta(icon: Icons.location_on_outlined, text: listing.location),
+              _ListingMeta(
+                icon: Icons.location_on_outlined,
+                text: listing.location,
+              ),
           if (listing.listedAt != null)
             _ListingMeta(
               icon: Icons.calendar_today_outlined,
               text: _formatDate(context, listing.listedAt!),
             ),
           if (listing.sellerName.isNotEmpty)
-            _ListingMeta(icon: Icons.person_outline, text: listing.sellerName),
+              _ListingMeta(
+                icon: Icons.person_outline,
+                text: listing.sellerName,
+              ),
         ],
       ),
       const SizedBox(height: 16),
@@ -1840,7 +1868,9 @@ class _ListingFeedContent extends StatelessWidget {
           if (isOwner) ...[
             IconButton(
               tooltip: l10n.editListing,
-              onPressed: context.watch<AuthController>().canManageContent ? onEdit : null,
+                onPressed: context.watch<AuthController>().canManageContent
+                    ? onEdit
+                    : null,
               icon: const Icon(Icons.edit_outlined),
             ),
             IconButton(
@@ -1876,7 +1906,10 @@ class _MarketplaceImagePreview extends StatelessWidget {
   Widget build(BuildContext context) => Stack(
     fit: StackFit.expand,
     children: [
-      _MarketplaceImage(url: listing.imageUrls.firstOrNull, category: listing.category),
+      _MarketplaceImage(
+        url: listing.imageUrls.firstOrNull,
+        category: listing.category,
+      ),
       if (listing.imageUrls.length > 1)
         Positioned(
           right: 8,
@@ -1911,7 +1944,11 @@ class _MarketplaceImage extends StatelessWidget {
       return ColoredBox(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Center(
-          child: Icon(_categoryIcon(category), size: 52, color: Theme.of(context).colorScheme.primary),
+          child: Icon(
+            _categoryIcon(category),
+            size: 52,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
       );
     }
@@ -1933,10 +1970,8 @@ IconData _categoryIcon(String category) => switch (category) {
   _ => Icons.inventory_2_outlined,
 };
 
-String _localizedMarketplaceCategory(
-  AppLocalizations l10n,
-  String category,
-) => switch (category) {
+String _localizedMarketplaceCategory(AppLocalizations l10n, String category) =>
+    switch (category) {
   'shoes' => l10n.shoes,
   'stones' => l10n.stones,
   'brooms' => l10n.brooms,
@@ -1977,7 +2012,10 @@ class _MarketplaceListingDetailsDialog extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 360, child: _MarketplaceImageGallery(listing: listing)),
+              SizedBox(
+                height: 360,
+                child: _MarketplaceImageGallery(listing: listing),
+              ),
             const SizedBox(height: 20),
             Text(
               '${listing.price.toStringAsFixed(2)} ${listing.currency}',
@@ -2007,7 +2045,8 @@ class _MarketplaceImageGallery extends StatefulWidget {
   final MarketplaceListing listing;
 
   @override
-  State<_MarketplaceImageGallery> createState() => _MarketplaceImageGalleryState();
+  State<_MarketplaceImageGallery> createState() =>
+      _MarketplaceImageGalleryState();
 }
 
 class _MarketplaceImageGalleryState extends State<_MarketplaceImageGallery> {
@@ -2150,7 +2189,9 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   late final _contact = TextEditingController(
     text: widget.initial?.sellerContact ?? widget.email,
   );
-  late final _imageUrls = List<String>.of(widget.initial?.imageUrls ?? const []);
+  late final _imageUrls = List<String>.of(
+    widget.initial?.imageUrls ?? const [],
+  );
   final _newImages = <PlatformFile>[];
   final _removedImageUrls = <String>[];
   late String _category = widget.initial?.category ?? 'other';
@@ -2172,7 +2213,9 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AlertDialog(
-    title: Text(widget.initial == null ? l10n.createListing : l10n.editListing),
+      title: Text(
+        widget.initial == null ? l10n.createListing : l10n.editListing,
+      ),
     content: SizedBox(
       width: 460,
       child: Form(
@@ -2199,11 +2242,14 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                     .map(
                       (category) => DropdownMenuItem(
                         value: category,
-                        child: Text(_localizedMarketplaceCategory(l10n, category)),
+                          child: Text(
+                            _localizedMarketplaceCategory(l10n, category),
+                          ),
                       ),
                     )
                     .toList(),
-                onChanged: (category) => setState(() => _category = category!),
+                  onChanged: (category) =>
+                      setState(() => _category = category!),
               ),
               Row(
                 children: [
@@ -2215,7 +2261,9 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                         decimal: true,
                       ),
                       validator: (value) =>
-                          double.tryParse(value?.replaceAll(',', '.') ?? '') ==
+                            double.tryParse(
+                                  value?.replaceAll(',', '.') ?? '',
+                                ) ==
                               null
                           ? l10n.enterValidPrice
                           : null,
@@ -2270,7 +2318,9 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                         onDeleted: _isUploading
                             ? null
                             : () => setState(() {
-                                _removedImageUrls.add(_imageUrls.removeAt(index));
+                                  _removedImageUrls.add(
+                                    _imageUrls.removeAt(index),
+                                  );
                               }),
                       ),
                     for (final image in _newImages)
@@ -2288,7 +2338,9 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     _uploadError!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                   ),
                 ),
             ],
@@ -2319,7 +2371,11 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   Future<void> _pickImages() async {
     if (!_allowContentWrite(context)) return;
     if (Firebase.apps.isEmpty) {
-      setState(() => _uploadError = AppLocalizations.of(context).imageUploadsRequireFirebase);
+      setState(
+        () => _uploadError = AppLocalizations.of(
+          context,
+        ).imageUploadsRequireFirebase,
+      );
       return;
     }
     final result = await FilePicker.platform.pickFiles(
@@ -2337,7 +2393,8 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   Future<void> _submit() async {
     if (!_allowContentWrite(context)) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final id = widget.initial?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
+    final id =
+        widget.initial?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
     setState(() {
       _isUploading = true;
       _uploadError = null;
@@ -2391,9 +2448,11 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
     }
   }
 
-  String _safeFileName(String name) => name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  String _safeFileName(String name) =>
+      name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
 
-  String _imageContentType(String? extension) => switch (extension?.toLowerCase()) {
+  String _imageContentType(String? extension) =>
+      switch (extension?.toLowerCase()) {
     'jpg' || 'jpeg' => 'image/jpeg',
     'png' => 'image/png',
     'gif' => 'image/gif',
@@ -2424,7 +2483,6 @@ class _TournamentsPageState extends State<TournamentsPage> {
       _selectedTournamentIds.add(widget.initialTournamentId!);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -2478,13 +2536,29 @@ class _TournamentsPageState extends State<TournamentsPage> {
     final now = DateTime.now();
     final auth = context.read<AuthController>();
     final organizerId = _showMyTournaments ? auth.userId : null;
-    final futureCandidates = snapshot.data!.where((item) => !item.endDate.isBefore(now) && (organizerId == null || item.organizerId == organizerId)).toList();
-    final future = _filtered(futureCandidates)
-        .where((item) => _selectedTournamentIds.isEmpty || _selectedTournamentIds.contains(item.id))
+    final futureCandidates = snapshot.data!
+        .where(
+          (item) =>
+              !item.endDate.isBefore(now) &&
+              (organizerId == null || item.organizerId == organizerId),
+        )
+        .toList();
+    final future =
+        _filtered(futureCandidates)
+            .where(
+              (item) =>
+                  _selectedTournamentIds.isEmpty ||
+                  _selectedTournamentIds.contains(item.id),
+            )
         .toList()
       ..sort((a, b) => a.startDate.compareTo(b.startDate));
-    final past = snapshot.data!
-        .where((item) => item.endDate.isBefore(now) && (organizerId == null || item.organizerId == organizerId))
+    final past =
+        snapshot.data!
+            .where(
+              (item) =>
+                  item.endDate.isBefore(now) &&
+                  (organizerId == null || item.organizerId == organizerId),
+            )
         .toList()
       ..sort((a, b) => b.startDate.compareTo(a.startDate));
     return Column(
@@ -2496,12 +2570,15 @@ class _TournamentsPageState extends State<TournamentsPage> {
           selectedLocations: _selectedLocations,
           filterDateRange: _filterDateRange,
           onTournamentToggled: (id) => setState(() {
-            if (!_selectedTournamentIds.add(id)) _selectedTournamentIds.remove(id);
+            if (!_selectedTournamentIds.add(id))
+              _selectedTournamentIds.remove(id);
           }),
           onLocationToggled: (location) => setState(() {
-            if (!_selectedLocations.add(location)) _selectedLocations.remove(location);
+            if (!_selectedLocations.add(location))
+              _selectedLocations.remove(location);
           }),
-          onDateRangeChanged: (range) => setState(() => _filterDateRange = range),
+          onDateRangeChanged: (range) =>
+              setState(() => _filterDateRange = range),
           onClear: () => setState(() {
             _selectedTournamentIds.clear();
             _selectedLocations.clear();
@@ -2513,8 +2590,11 @@ class _TournamentsPageState extends State<TournamentsPage> {
           FilterChip(
             selected: _showMyTournaments,
             avatar: const Icon(Icons.person_outline),
-            label: Text(_showMyTournaments ? l10n.allTournaments : l10n.myTournaments),
-            onSelected: (selected) => setState(() => _showMyTournaments = selected),
+            label: Text(
+              _showMyTournaments ? l10n.allTournaments : l10n.myTournaments,
+            ),
+            onSelected: (selected) =>
+                setState(() => _showMyTournaments = selected),
           ),
         ],
         const SizedBox(height: 24),
@@ -2567,9 +2647,15 @@ class _TournamentsPageState extends State<TournamentsPage> {
 
   List<Tournament> _filtered(List<Tournament> source, {String? organizerId}) {
     return source.where((tournament) {
-      final matchesLocation = _selectedLocations.isEmpty || _selectedLocations.contains(_tournamentLocation(tournament));
-      final matchesDateRange = _filterDateRange == null || (!tournament.startDate.isBefore(_filterDateRange!.start) && !tournament.endDate.isAfter(_filterDateRange!.end));
-      final matchesOrganizer = organizerId == null || tournament.organizerId == organizerId;
+      final matchesLocation =
+          _selectedLocations.isEmpty ||
+          _selectedLocations.contains(_tournamentLocation(tournament));
+      final matchesDateRange =
+          _filterDateRange == null ||
+          (!tournament.startDate.isBefore(_filterDateRange!.start) &&
+              !tournament.endDate.isAfter(_filterDateRange!.end));
+      final matchesOrganizer =
+          organizerId == null || tournament.organizerId == organizerId;
       return matchesLocation && matchesDateRange && matchesOrganizer;
     }).toList();
   }
@@ -2657,19 +2743,33 @@ class _TournamentsPageState extends State<TournamentsPage> {
       try {
         await context.read<TournamentRepository>().delete(tournament.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.tournamentDeleted)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.tournamentDeleted)));
         }
       } catch (_) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.tournamentDeleteError)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.tournamentDeleteError)));
         }
       }
     }
   }
+}
+
+String _roleLabel(BuildContext context, String role) =>
+    role == 'any' ? AppLocalizations.of(context).roleAny : role;
+
+String _countryLabel(BuildContext context, String country) =>
+    const {'deutschland', 'germany'}.contains(country.trim().toLowerCase())
+    ? AppLocalizations.of(context).countryGermany
+    : country;
+
+String _locationLabel(BuildContext context, String location) {
+  final separator = location.lastIndexOf(', ');
+  if (separator < 0) return location;
+  return '${location.substring(0, separator + 2)}${_countryLabel(context, location.substring(separator + 2))}';
 }
 
 String _tournamentLocation(Tournament tournament) =>
@@ -2701,11 +2801,21 @@ class _TournamentFilters extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final tournamentItems = selectedLocations.isEmpty
         ? tournaments
-        : tournaments.where((tournament) => selectedLocations.contains(_tournamentLocation(tournament))).toList();
+        : tournaments
+              .where(
+                (tournament) =>
+                    selectedLocations.contains(_tournamentLocation(tournament)),
+              )
+              .toList();
     final locationItems = selectedTournamentIds.isEmpty
         ? tournaments
-        : tournaments.where((tournament) => selectedTournamentIds.contains(tournament.id)).toList();
-    final locations = locationItems.map(_tournamentLocation).toSet().toList()..sort();
+        : tournaments
+              .where(
+                (tournament) => selectedTournamentIds.contains(tournament.id),
+              )
+              .toList();
+    final locations = locationItems.map(_tournamentLocation).toSet().toList()
+      ..sort();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -2723,11 +2833,11 @@ class _TournamentFilters extends StatelessWidget {
               onToggle: onTournamentToggled,
             ),
             _SearchableMultiSelectFilter<String>(
-              label: "Location",
+              label: l10n.location,
               items: locations,
               selectedItems: selectedLocations,
               itemValue: (location) => location,
-              itemLabel: (location) => location,
+              itemLabel: (location) => _locationLabel(context, location),
               onToggle: onLocationToggled,
             ),
             _FilterDateRangeButton(
@@ -2787,15 +2897,31 @@ class _SearchableMultiSelectFilterState<T>
   }
 
   void _toggle() => _overlay == null ? _open() : _close();
-  void _close() { _overlay?.remove(); _overlay = null; }
+  void _close() {
+    _overlay?.remove();
+    _overlay = null;
+  }
 
   void _open() {
     _query = "";
     _overlay = OverlayEntry(
       builder: (context) {
-        final items = widget.items.where((item) => widget.itemLabel(item).toLowerCase().contains(_query.toLowerCase())).toList();
-        return Stack(children: [
-          Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _close)),
+        final items = widget.items
+            .where(
+              (item) => widget
+                  .itemLabel(item)
+                  .toLowerCase()
+                  .contains(_query.toLowerCase()),
+            )
+            .toList();
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _close,
+              ),
+            ),
           CompositedTransformFollower(
             link: _link,
             targetAnchor: Alignment.bottomLeft,
@@ -2807,13 +2933,21 @@ class _SearchableMultiSelectFilterState<T>
                 width: 280,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 340),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                     Padding(
                       padding: const EdgeInsets.all(8),
                       child: TextField(
                         autofocus: true,
-                        onChanged: (value) { _query = value; _overlay?.markNeedsBuild(); },
-                        decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: widget.label),
+                            onChanged: (value) {
+                              _query = value;
+                              _overlay?.markNeedsBuild();
+                            },
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search),
+                              hintText: widget.label,
+                            ),
                       ),
                     ),
                     Flexible(
@@ -2823,20 +2957,30 @@ class _SearchableMultiSelectFilterState<T>
                           final value = widget.itemValue(item);
                           return CheckboxListTile(
                             dense: true,
-                            controlAffinity: ListTileControlAffinity.leading,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
                             value: widget.selectedItems.contains(value),
-                            title: Text(widget.itemLabel(item), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            onChanged: (_) { widget.onToggle(value); _overlay?.markNeedsBuild(); },
+                                title: Text(
+                                  widget.itemLabel(item),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onChanged: (_) {
+                                  widget.onToggle(value);
+                                  _overlay?.markNeedsBuild();
+                                },
                           );
                         }).toList(),
                       ),
                     ),
-                  ]),
+                      ],
                 ),
               ),
             ),
           ),
-        ]);
+            ),
+          ],
+        );
       },
     );
     Overlay.of(context, rootOverlay: true).insert(_overlay!);
@@ -2850,8 +2994,18 @@ class _SearchableMultiSelectFilterState<T>
       child: InkWell(
         onTap: _toggle,
         child: InputDecorator(
-          decoration: InputDecoration(labelText: widget.label, border: const OutlineInputBorder(), suffixIcon: const Icon(Icons.arrow_drop_down)),
-          child: Text(widget.selectedItems.isEmpty ? AppLocalizations.of(context).all : AppLocalizations.of(context).selectedCount(widget.selectedItems.length)),
+          decoration: InputDecoration(
+            labelText: widget.label,
+            border: const OutlineInputBorder(),
+            suffixIcon: const Icon(Icons.arrow_drop_down),
+          ),
+          child: Text(
+            widget.selectedItems.isEmpty
+                ? AppLocalizations.of(context).all
+                : AppLocalizations.of(
+                    context,
+                  ).selectedCount(widget.selectedItems.length),
+          ),
         ),
       ),
     ),
@@ -2866,7 +3020,7 @@ class _FilterDateRangeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = value == null
-        ? "Date range"
+        ? AppLocalizations.of(context).dateRange
         : "${_formatDate(context, value!.start)} – ${_formatDate(context, value!.end)}";
     return SizedBox(
       width: 220,
@@ -2880,7 +3034,10 @@ class _FilterDateRangeButton extends StatelessWidget {
             initialDateRange: value,
             builder: (context, child) => Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640, maxHeight: 720),
+                constraints: const BoxConstraints(
+                  maxWidth: 640,
+                  maxHeight: 720,
+                ),
                 child: child!,
               ),
             ),
@@ -2900,7 +3057,15 @@ class _FilterDateRangeButton extends StatelessWidget {
 }
 
 class _TournamentFeed extends StatelessWidget {
-  const _TournamentFeed({required this.tournaments, required this.emptyText, required this.canEdit, required this.onEdit, required this.tournamentsWithPlayerSearches, required this.tournamentsWithTeamSearches, this.onDelete});
+  const _TournamentFeed({
+    required this.tournaments,
+    required this.emptyText,
+    required this.canEdit,
+    required this.onEdit,
+    required this.tournamentsWithPlayerSearches,
+    required this.tournamentsWithTeamSearches,
+    this.onDelete,
+  });
   final List<Tournament> tournaments;
   final String emptyText;
   final bool canEdit;
@@ -2923,7 +3088,10 @@ class _TournamentFeed extends StatelessWidget {
         final tournament = tournaments[index];
         final owner = auth.isSignedIn && auth.userId == tournament.organizerId;
         final website = tournament.websiteUrl;
-        final location = "${tournament.city}${tournament.country?.isNotEmpty ?? false ? ", ${tournament.country}" : ""}";
+        final location = _locationLabel(
+          context,
+          _tournamentLocation(tournament),
+        );
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -2933,19 +3101,51 @@ class _TournamentFeed extends StatelessWidget {
                 final content = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(tournament.name, style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      tournament.name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 4),
-                    Text([if (tournament.club?.isNotEmpty ?? false) tournament.club!, location].join(" · ")),
+                    Text(
+                      [
+                        if (tournament.club?.isNotEmpty ?? false)
+                          tournament.club!,
+                        location,
+                      ].join(" · "),
+                    ),
                     const SizedBox(height: 14),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _TournamentChip(icon: Icons.date_range_outlined, label: "${_formatDate(context, tournament.startDate)} – ${_formatDate(context, tournament.endDate)}"),
-                        if (tournament.signupDeadline != null) _TournamentChip(icon: Icons.how_to_reg_outlined, label: "${l10n.signupDeadline}: ${_formatDate(context, tournament.signupDeadline!)}"),
-                        if (tournament.entryFee != null) _TournamentChip(icon: Icons.payments_outlined, label: "${tournament.entryFee!.toStringAsFixed(2)} ${tournament.currency ?? ""}"),
-                        if (tournament.maxNumberOfTeams != null) _TournamentChip(icon: Icons.groups_outlined, label: "${tournament.maxNumberOfTeams} ${l10n.maxTeams}"),
-                        if (tournament.contactInformation?.isNotEmpty ?? false) _TournamentChip(icon: Icons.contact_mail_outlined, label: tournament.contactInformation!),
+                        _TournamentChip(
+                          icon: Icons.date_range_outlined,
+                          label:
+                              "${_formatDate(context, tournament.startDate)} – ${_formatDate(context, tournament.endDate)}",
+                        ),
+                        if (tournament.signupDeadline != null)
+                          _TournamentChip(
+                            icon: Icons.how_to_reg_outlined,
+                            label:
+                                "${l10n.signupDeadline}: ${_formatDate(context, tournament.signupDeadline!)}",
+                          ),
+                        if (tournament.entryFee != null)
+                          _TournamentChip(
+                            icon: Icons.payments_outlined,
+                            label:
+                                "${tournament.entryFee!.toStringAsFixed(2)} ${tournament.currency ?? ""}",
+                          ),
+                        if (tournament.maxNumberOfTeams != null)
+                          _TournamentChip(
+                            icon: Icons.groups_outlined,
+                            label:
+                                "${tournament.maxNumberOfTeams} ${l10n.maxTeams}",
+                          ),
+                        if (tournament.contactInformation?.isNotEmpty ?? false)
+                          _TournamentChip(
+                            icon: Icons.contact_mail_outlined,
+                            label: tournament.contactInformation!,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -2953,18 +3153,57 @@ class _TournamentFeed extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        if (website != null && website.isNotEmpty) OutlinedButton.icon(onPressed: () => launchUrl(_websiteUri(website)), icon: const Icon(Icons.language_outlined), label: Text(website)),
-                        if (tournamentsWithPlayerSearches.contains(tournament.id)) IconButton(tooltip: l10n.playersSearchingForTeams, onPressed: () => context.go("/players", extra: tournament.id), icon: const Icon(Icons.person_search_outlined)),
-                        if (tournamentsWithTeamSearches.contains(tournament.id)) IconButton(tooltip: l10n.teamsSearchingForPlayers, onPressed: () => context.go("/players", extra: tournament.id), icon: const Icon(Icons.groups_outlined)),
-                        if (owner && canEdit) IconButton(tooltip: l10n.editTournament, onPressed: () => onEdit(tournament), icon: const Icon(Icons.edit_outlined)),
-                        if (owner && onDelete != null) IconButton(tooltip: l10n.deleteTournament, onPressed: () => onDelete!(tournament), icon: const Icon(Icons.delete_outline)),
+                        if (website != null && website.isNotEmpty)
+                          OutlinedButton.icon(
+                            onPressed: () => launchUrl(_websiteUri(website)),
+                            icon: const Icon(Icons.language_outlined),
+                            label: Text(website),
+                          ),
+                        if (tournamentsWithPlayerSearches.contains(
+                          tournament.id,
+                        ))
+                          IconButton(
+                            tooltip: l10n.playersSearchingForTeams,
+                            onPressed: () =>
+                                context.go("/players", extra: tournament.id),
+                            icon: const Icon(Icons.person_search_outlined),
+                          ),
+                        if (tournamentsWithTeamSearches.contains(tournament.id))
+                          IconButton(
+                            tooltip: l10n.teamsSearchingForPlayers,
+                            onPressed: () =>
+                                context.go("/players", extra: tournament.id),
+                            icon: const Icon(Icons.groups_outlined),
+                          ),
+                        if (owner && canEdit)
+                          IconButton(
+                            tooltip: l10n.editTournament,
+                            onPressed: () => onEdit(tournament),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                        if (owner && onDelete != null)
+                          IconButton(
+                            tooltip: l10n.deleteTournament,
+                            onPressed: () => onDelete!(tournament),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
                       ],
                     ),
                   ],
                 );
                 return constraints.maxWidth < 620
-                    ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [date, const SizedBox(height: 16), content])
-                    : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [date, const SizedBox(width: 20), Expanded(child: content)]);
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [date, const SizedBox(height: 16), content],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          date,
+                          const SizedBox(width: 20),
+                          Expanded(child: content),
+                        ],
+                      );
               },
             ),
           ),
@@ -2981,12 +3220,34 @@ class _TournamentDateBlock extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: 92,
     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-    decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(12)),
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Text(DateFormat("MMM", Localizations.localeOf(context).languageCode).format(date.toLocal()).toUpperCase()),
-      Text(DateFormat("d", Localizations.localeOf(context).languageCode).format(date.toLocal()), style: Theme.of(context).textTheme.headlineMedium),
-      Text(DateFormat("y", Localizations.localeOf(context).languageCode).format(date.toLocal())),
-    ]),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          DateFormat(
+            "MMM",
+            Localizations.localeOf(context).languageCode,
+          ).format(date.toLocal()).toUpperCase(),
+        ),
+        Text(
+          DateFormat(
+            "d",
+            Localizations.localeOf(context).languageCode,
+          ).format(date.toLocal()),
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        Text(
+          DateFormat(
+            "y",
+            Localizations.localeOf(context).languageCode,
+          ).format(date.toLocal()),
+        ),
+      ],
+    ),
   );
 }
 
@@ -2995,9 +3256,9 @@ class _TournamentChip extends StatelessWidget {
   final IconData icon;
   final String label;
   @override
-  Widget build(BuildContext context) => Chip(avatar: Icon(icon, size: 18), label: Text(label));
+  Widget build(BuildContext context) =>
+      Chip(avatar: Icon(icon, size: 18), label: Text(label));
 }
-
 
 String _formatDate(BuildContext context, DateTime date) => DateFormat(
   'dd-MMM-yyyy',
@@ -3487,12 +3748,18 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
                   children: [
                     _SearchableMultiSelectFilter<Tournament>(
                       label: l10n.tournamentFilter,
-                      items: (tournaments.data ?? const <Tournament>[]).where((tournament) => !tournament.endDate.isBefore(DateTime.now())).toList(),
+                      items: (tournaments.data ?? const <Tournament>[])
+                          .where(
+                            (tournament) =>
+                                !tournament.endDate.isBefore(DateTime.now()),
+                          )
+                          .toList(),
                       selectedItems: _selectedTournamentIds,
                       itemValue: (tournament) => tournament.id,
                       itemLabel: (tournament) => tournament.name,
                       onToggle: (id) => setState(() {
-                        if (!_selectedTournamentIds.add(id)) _selectedTournamentIds.remove(id);
+                        if (!_selectedTournamentIds.add(id))
+                          _selectedTournamentIds.remove(id);
                       }),
                     ),
                     _SearchableMultiSelectFilter<String>(
@@ -3500,16 +3767,21 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
                       items: _roles,
                       selectedItems: _selectedRoles,
                       itemValue: (role) => role,
-                      itemLabel: (role) => role,
+                      itemLabel: (role) => _roleLabel(context, role),
                       onToggle: (role) => setState(() {
-                        if (!_selectedRoles.add(role)) _selectedRoles.remove(role);
+                        if (!_selectedRoles.add(role))
+                          _selectedRoles.remove(role);
                       }),
                     ),
                   ],
                 ),
-                if (_selectedTournamentIds.isNotEmpty || _selectedRoles.isNotEmpty)
+                if (_selectedTournamentIds.isNotEmpty ||
+                    _selectedRoles.isNotEmpty)
                   TextButton.icon(
-                    onPressed: () => setState(() { _selectedTournamentIds.clear(); _selectedRoles.clear(); }),
+                    onPressed: () => setState(() {
+                      _selectedTournamentIds.clear();
+                      _selectedRoles.clear();
+                    }),
                     icon: const Icon(Icons.clear),
                     label: Text(l10n.clearFilters),
                   ),
@@ -3567,13 +3839,21 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
     List<Tournament> tournaments,
     AsyncSnapshot<List<PlayerTeamSearch>> snapshot,
   ) {
-    if (snapshot.hasError) return Text(AppLocalizations.of(context).unableToLoadData);
-    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-    final byId = {for (final tournament in tournaments) tournament.id: tournament};
+    if (snapshot.hasError)
+      return Text(AppLocalizations.of(context).unableToLoadData);
+    if (!snapshot.hasData)
+      return const Center(child: CircularProgressIndicator());
+    final byId = {
+      for (final tournament in tournaments) tournament.id: tournament,
+    };
     final now = DateTime.now();
     final searches = snapshot.data!.where((search) {
       final tournament = byId[search.tournamentId];
-      return tournament != null && !tournament.endDate.isBefore(now) && (_selectedTournamentIds.isEmpty || _selectedTournamentIds.contains(search.tournamentId)) && (_selectedRoles.isEmpty || _selectedRoles.contains(search.role));
+      return tournament != null &&
+          !tournament.endDate.isBefore(now) &&
+          (_selectedTournamentIds.isEmpty ||
+              _selectedTournamentIds.contains(search.tournamentId)) &&
+          (_selectedRoles.isEmpty || _selectedRoles.contains(search.role));
     }).toList();
 
     if (searches.isEmpty) return Text(AppLocalizations.of(context).noItems);
@@ -3604,7 +3884,9 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         .read<TournamentRepository>()
         .watchTournaments()
         .first;
-    final upcomingTournaments = tournaments.where((tournament) => !tournament.endDate.isBefore(DateTime.now())).toList();
+    final upcomingTournaments = tournaments
+        .where((tournament) => !tournament.endDate.isBefore(DateTime.now()))
+        .toList();
     if (!mounted) return;
     final result = await showDialog<PlayerTeamSearch>(
       context: context,
@@ -3668,13 +3950,21 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
     List<Tournament> tournaments,
     AsyncSnapshot<List<TeamPlayerSearch>> snapshot,
   ) {
-    if (snapshot.hasError) return Text(AppLocalizations.of(context).unableToLoadData);
-    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-    final byId = {for (final tournament in tournaments) tournament.id: tournament};
+    if (snapshot.hasError)
+      return Text(AppLocalizations.of(context).unableToLoadData);
+    if (!snapshot.hasData)
+      return const Center(child: CircularProgressIndicator());
+    final byId = {
+      for (final tournament in tournaments) tournament.id: tournament,
+    };
     final now = DateTime.now();
     final searches = snapshot.data!.where((search) {
       final tournament = byId[search.tournamentId];
-      return tournament != null && !tournament.endDate.isBefore(now) && (_selectedTournamentIds.isEmpty || _selectedTournamentIds.contains(search.tournamentId)) && (_selectedRoles.isEmpty || _selectedRoles.contains(search.role));
+      return tournament != null &&
+          !tournament.endDate.isBefore(now) &&
+          (_selectedTournamentIds.isEmpty ||
+              _selectedTournamentIds.contains(search.tournamentId)) &&
+          (_selectedRoles.isEmpty || _selectedRoles.contains(search.role));
     }).toList();
 
     if (searches.isEmpty) return Text(AppLocalizations.of(context).noItems);
@@ -3705,7 +3995,9 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
         .read<TournamentRepository>()
         .watchTournaments()
         .first;
-    final upcomingTournaments = tournaments.where((tournament) => !tournament.endDate.isBefore(DateTime.now())).toList();
+    final upcomingTournaments = tournaments
+        .where((tournament) => !tournament.endDate.isBefore(DateTime.now()))
+        .toList();
     if (!mounted) return;
     final result = await showDialog<TeamPlayerSearch>(
       context: context,
@@ -3807,22 +4099,29 @@ class _PlayerSearchCard extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(
                   child: event == null
-                      ? Text(l10n.tournamentUnavailable, style: Theme.of(context).textTheme.titleMedium)
+                      ? Text(
+                          l10n.tournamentUnavailable,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        )
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             TextButton(
-                              onPressed: () => context.go("/tournaments", extra: event.id),
+                              onPressed: () =>
+                                  context.go("/tournaments", extra: event.id),
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                              child: Text(event.name, style: Theme.of(context).textTheme.titleLarge),
+                              child: Text(
+                                event.name,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "${event.city}${event.country?.isNotEmpty ?? false ? ", ${event.country}" : ""} · ${_formatDate(context, event.startDate)} – ${_formatDate(context, event.endDate)}",
+                              "${event.city}${event.country?.isNotEmpty ?? false ? ", ${_countryLabel(context, event.country!)}" : ""} · ${_formatDate(context, event.startDate)} – ${_formatDate(context, event.endDate)}",
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -3836,10 +4135,28 @@ class _PlayerSearchCard extends StatelessWidget {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Chip(avatar: const Icon(Icons.sports_outlined, size: 18), label: Text(role)),
-                Chip(avatar: const Icon(Icons.contact_mail_outlined, size: 18), label: SelectableText(contact)),
-                if (isOwner && context.watch<AuthController>().canManageContent) IconButton(tooltip: l10n.editSearch, onPressed: context.watch<AuthController>().canManageContent ? onEdit : null, icon: const Icon(Icons.edit_outlined)),
-                if (isOwner) IconButton(tooltip: l10n.deleteSearch, onPressed: onDelete, icon: const Icon(Icons.delete_outline)),
+                Chip(
+                  avatar: const Icon(Icons.sports_outlined, size: 18),
+                  label: Text(_roleLabel(context, role)),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.contact_mail_outlined, size: 18),
+                  label: SelectableText(contact),
+                ),
+                if (isOwner && context.watch<AuthController>().canManageContent)
+                  IconButton(
+                    tooltip: l10n.editSearch,
+                    onPressed: context.watch<AuthController>().canManageContent
+                        ? onEdit
+                        : null,
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                if (isOwner)
+                  IconButton(
+                    tooltip: l10n.deleteSearch,
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline),
+                  ),
               ],
             ),
           ],
@@ -3901,7 +4218,12 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
               labelText: AppLocalizations.of(context).role,
             ),
             items: const ['lead', 'second', 'third', 'skip', 'any']
-                .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                .map(
+                  (role) => DropdownMenuItem(
+                    value: role,
+                    child: Text(_roleLabel(context, role)),
+                  ),
+                )
                 .toList(),
             onChanged: (value) => setState(() => _role = value!),
           ),
@@ -3990,7 +4312,12 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
               labelText: AppLocalizations.of(context).role,
             ),
             items: const ['lead', 'second', 'third', 'skip', 'any']
-                .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                .map(
+                  (role) => DropdownMenuItem(
+                    value: role,
+                    child: Text(_roleLabel(context, role)),
+                  ),
+                )
                 .toList(),
             onChanged: (value) => setState(() => _role = value!),
           ),
@@ -4115,7 +4442,9 @@ class PageFrame extends StatelessWidget {
                                   ),
                                   child: Text(
                                     'CURLING COMPANION',
-                                    style: Theme.of(context).textTheme.labelMedium
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
                                         ?.copyWith(
                                           color: _curlingBlue,
                                           fontWeight: FontWeight.w800,
@@ -4128,7 +4457,9 @@ class PageFrame extends StatelessWidget {
                             const SizedBox(height: 6),
                             Text(
                               title,
-                              style: Theme.of(context).textTheme.headlineMedium
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 6),
@@ -4170,7 +4501,10 @@ class _PageHeaderControls extends StatelessWidget {
       if (pageAction != null) pageAction!,
       if (MediaQuery.sizeOf(context).width < 1000) const _PrivacyLink(),
       if (MediaQuery.sizeOf(context).width < 1000)
-        TextButton(onPressed: () => context.go('/impressum'), child: Text(AppLocalizations.of(context).legalNotice)),
+        TextButton(
+          onPressed: () => context.go('/impressum'),
+          child: Text(AppLocalizations.of(context).legalNotice),
+        ),
       _LanguageMenu(),
       _PageAccountMenu(),
     ],
@@ -4211,7 +4545,8 @@ class _PageAccountMenu extends StatelessWidget {
       },
       itemBuilder: (_) => [
         PopupMenuItem(enabled: false, child: Text(auth.email ?? '')),
-        if (!auth.isEmailVerified) PopupMenuItem(value: 'verify', child: Text(l10n.verifyEmail)),
+        if (!auth.isEmailVerified)
+          PopupMenuItem(value: 'verify', child: Text(l10n.verifyEmail)),
         PopupMenuItem(
           value: 'settings',
           child: Text(auth.language == 'de' ? 'Einstellungen' : 'Settings'),
