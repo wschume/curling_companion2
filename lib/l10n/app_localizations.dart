@@ -1238,6 +1238,12 @@ abstract class AppLocalizations {
   /// **'Date range'**
   String get dateRange;
 
+  /// No description provided for @roleAlternate.
+  ///
+  /// In en, this message translates to:
+  /// **'alternate'**
+  String get roleAlternate;
+
   /// No description provided for @roleAny.
   ///
   /// In en, this message translates to:

@@ -2892,8 +2892,13 @@ class _TournamentsPageState extends State<TournamentsPage> {
   }
 }
 
-String _roleLabel(BuildContext context, String role) =>
-    role == 'any' ? AppLocalizations.of(context).roleAny : role;
+const _searchRoles = ['lead', 'second', 'third', 'skip', 'alternate', 'any'];
+
+String _roleLabel(BuildContext context, String role) => switch (role) {
+  'any' => AppLocalizations.of(context).roleAny,
+  'alternate' => AppLocalizations.of(context).roleAlternate,
+  _ => role,
+};
 
 String _countryLabel(BuildContext context, String country) =>
     const {'deutschland', 'germany'}.contains(country.trim().toLowerCase())
@@ -3850,7 +3855,6 @@ class PlayersDirectoryPage extends StatefulWidget {
 class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
   final _selectedTournamentIds = <String>{};
   final _selectedRoles = <String>{};
-  static const _roles = ["lead", "second", "third", "skip", "any"];
 
   @override
   void initState() {
@@ -3898,7 +3902,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
                     ),
                     _SearchableMultiSelectFilter<String>(
                       label: l10n.role,
-                      items: _roles,
+                      items: _searchRoles,
                       selectedItems: _selectedRoles,
                       itemValue: (role) => role,
                       itemLabel: (role) => _roleLabel(context, role),
@@ -4372,7 +4376,7 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context).role,
               ),
-              items: const ['lead', 'second', 'third', 'skip', 'any']
+              items: _searchRoles
                   .map(
                     (role) => DropdownMenuItem(
                       value: role,
@@ -4491,7 +4495,7 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context).role,
               ),
-              items: const ['lead', 'second', 'third', 'skip', 'any']
+              items: _searchRoles
                   .map(
                     (role) => DropdownMenuItem(
                       value: role,
