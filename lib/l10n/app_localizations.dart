@@ -1237,6 +1237,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Where the applicable legal conditions are met, you may request access to, correction or erasure of your personal data, restriction of processing and data portability. You may object to processing based on legitimate interests. Where processing is based on consent, you may withdraw that consent for the future without affecting the lawfulness of earlier processing. The “Understood” action on this website is not such consent. Contact the controller using the details above. You may lodge a complaint with a competent data protection supervisory authority, including the Berlin Commissioner for Data Protection and Freedom of Information.'**
   String get privacyRightsBody;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPassword;
+
+  /// No description provided for @sendResetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Send reset link'**
+  String get sendResetLink;
+
+  /// No description provided for @resetSent.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account exists for this email address, you’ll receive a password reset link.'**
+  String get resetSent;
+
+  /// No description provided for @resetNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get resetNetworkError;
+
+  /// No description provided for @resetRateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please try again later.'**
+  String get resetRateError;
+
+  /// No description provided for @resetError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not request a reset link. Please try again.'**
+  String get resetError;
+
+  /// No description provided for @resetClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get resetClose;
+
+  /// No description provided for @resetCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get resetCancel;
 }
 
 class _AppLocalizationsDelegate
