@@ -632,4 +632,8 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get privacyRightsBody =>
       'Unter den jeweils geltenden gesetzlichen Voraussetzungen kannst du Auskunft, Berichtigung oder Löschung deiner personenbezogenen Daten, Einschränkung der Verarbeitung sowie Datenübertragbarkeit verlangen. Gegen eine auf berechtigte Interessen gestützte Verarbeitung kannst du Widerspruch einlegen. Beruht eine Verarbeitung auf Einwilligung, kannst du diese für die Zukunft widerrufen, ohne dass die Rechtmäßigkeit der bisherigen Verarbeitung berührt wird. Der Button „Verstanden“ auf dieser Webseite erteilt keine solche Einwilligung. Wende dich über die oben genannten Kontaktdaten an den Verantwortlichen. Du kannst dich bei einer zuständigen Datenschutzaufsichtsbehörde beschweren, einschließlich der Berliner Beauftragten für Datenschutz und Informationsfreiheit.';
+
+  @override
+  String get additionalInformationOptional =>
+      'Zusätzliche Informationen (optional)';
 }

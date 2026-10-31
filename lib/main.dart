@@ -3574,6 +3574,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
           tournament: byId[search.tournamentId],
           role: search.role,
           contact: search.contact,
+          additionalInformation: search.additionalInformation,
           isOwner: context.read<AuthController>().userId == search.ownerId,
           onEdit: () => _editTeamSearch(search),
           onDelete: () => _deleteTeamSearch(search),
@@ -3675,6 +3676,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
           tournament: byId[search.tournamentId],
           role: search.role,
           contact: search.contact,
+          additionalInformation: search.additionalInformation,
           isOwner: context.read<AuthController>().userId == search.ownerId,
           onEdit: () => _editSearch(search),
           onDelete: () => _deleteSearch(search),
@@ -3757,6 +3759,7 @@ class _PlayerSearchCard extends StatelessWidget {
     required this.tournament,
     required this.role,
     required this.contact,
+    required this.additionalInformation,
     required this.isOwner,
     required this.onEdit,
     required this.onDelete,
@@ -3765,6 +3768,7 @@ class _PlayerSearchCard extends StatelessWidget {
   final Tournament? tournament;
   final String role;
   final String contact;
+  final String additionalInformation;
   final bool isOwner;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -3793,18 +3797,25 @@ class _PlayerSearchCard extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(
                   child: event == null
-                      ? Text(l10n.tournamentUnavailable, style: Theme.of(context).textTheme.titleMedium)
+                      ? Text(
+                          l10n.tournamentUnavailable,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        )
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             TextButton(
-                              onPressed: () => context.go("/tournaments", extra: event.id),
+                              onPressed: () =>
+                                  context.go("/tournaments", extra: event.id),
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                              child: Text(event.name, style: Theme.of(context).textTheme.titleLarge),
+                              child: Text(
+                                event.name,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -3816,16 +3827,38 @@ class _PlayerSearchCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (additionalInformation.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(additionalInformation),
+            ],
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Chip(avatar: const Icon(Icons.sports_outlined, size: 18), label: Text(role)),
-                Chip(avatar: const Icon(Icons.contact_mail_outlined, size: 18), label: SelectableText(contact)),
-                if (isOwner && context.watch<AuthController>().canManageContent) IconButton(tooltip: l10n.editSearch, onPressed: context.watch<AuthController>().canManageContent ? onEdit : null, icon: const Icon(Icons.edit_outlined)),
-                if (isOwner) IconButton(tooltip: l10n.deleteSearch, onPressed: onDelete, icon: const Icon(Icons.delete_outline)),
+                Chip(
+                  avatar: const Icon(Icons.sports_outlined, size: 18),
+                  label: Text(role),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.contact_mail_outlined, size: 18),
+                  label: SelectableText(contact),
+                ),
+                if (isOwner && context.watch<AuthController>().canManageContent)
+                  IconButton(
+                    tooltip: l10n.editSearch,
+                    onPressed: context.watch<AuthController>().canManageContent
+                        ? onEdit
+                        : null,
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                if (isOwner)
+                  IconButton(
+                    tooltip: l10n.deleteSearch,
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline),
+                  ),
               ],
             ),
           ],
@@ -3852,6 +3885,16 @@ class _TeamSearchDialog extends StatefulWidget {
 class _TeamSearchDialogState extends State<_TeamSearchDialog> {
   String? _tournamentId;
   String _role = 'any';
+  late final _additionalInformation = TextEditingController(
+    text: widget.initial?.additionalInformation,
+  );
+
+  @override
+  void dispose() {
+    _additionalInformation.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -3868,6 +3911,7 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
     ),
     content: SizedBox(
       width: 420,
+      child: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -3877,7 +3921,9 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
               labelText: AppLocalizations.of(context).tournament,
             ),
             items: widget.tournaments
-                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                  .map(
+                    (t) => DropdownMenuItem(value: t.id, child: Text(t.name)),
+                  )
                 .toList(),
             onChanged: (value) => setState(() => _tournamentId = value),
           ),
@@ -3887,11 +3933,24 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
               labelText: AppLocalizations.of(context).role,
             ),
             items: const ['lead', 'second', 'third', 'skip', 'any']
-                .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                  .map(
+                    (role) => DropdownMenuItem(value: role, child: Text(role)),
+                  )
                 .toList(),
             onChanged: (value) => setState(() => _role = value!),
           ),
+            TextField(
+              controller: _additionalInformation,
+              minLines: 3,
+              maxLines: 6,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(
+                  context,
+                ).additionalInformationOptional,
+              ),
+            ),
         ],
+        ),
       ),
     ),
     actions: [
@@ -3911,6 +3970,7 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
                   role: _role,
                   contact: widget.contact,
                   ownerId: widget.ownerId,
+                  additionalInformation: _additionalInformation.text.trim(),
                 ),
               ),
         child: Text(
@@ -3941,6 +4001,16 @@ class _PlayerTeamSearchDialog extends StatefulWidget {
 class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
   String? _tournamentId;
   String _role = 'any';
+  late final _additionalInformation = TextEditingController(
+    text: widget.initial?.additionalInformation,
+  );
+
+  @override
+  void dispose() {
+    _additionalInformation.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -3957,6 +4027,7 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
     ),
     content: SizedBox(
       width: 420,
+      child: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -3966,7 +4037,9 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
               labelText: AppLocalizations.of(context).tournament,
             ),
             items: widget.tournaments
-                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                  .map(
+                    (t) => DropdownMenuItem(value: t.id, child: Text(t.name)),
+                  )
                 .toList(),
             onChanged: (value) => setState(() => _tournamentId = value),
           ),
@@ -3976,11 +4049,24 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
               labelText: AppLocalizations.of(context).role,
             ),
             items: const ['lead', 'second', 'third', 'skip', 'any']
-                .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                  .map(
+                    (role) => DropdownMenuItem(value: role, child: Text(role)),
+                  )
                 .toList(),
             onChanged: (value) => setState(() => _role = value!),
           ),
+            TextField(
+              controller: _additionalInformation,
+              minLines: 3,
+              maxLines: 6,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(
+                  context,
+                ).additionalInformationOptional,
+              ),
+            ),
         ],
+        ),
       ),
     ),
     actions: [
@@ -4000,6 +4086,7 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
                   role: _role,
                   contact: widget.contact,
                   ownerId: widget.ownerId,
+                  additionalInformation: _additionalInformation.text.trim(),
                 ),
               ),
         child: Text(
