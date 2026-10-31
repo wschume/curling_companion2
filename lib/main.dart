@@ -584,14 +584,6 @@ class AppShell extends StatelessWidget {
                 selectedIndex: selectedIndex < 0 ? null : selectedIndex,
                 labelType: NavigationRailLabelType.all,
                 minWidth: 104,
-                leading: const Padding(
-                  padding: EdgeInsets.only(top: 12, bottom: 20),
-                  child: Icon(
-                    Icons.sports_score,
-                    color: _curlingBlue,
-                    size: 30,
-                  ),
-                ),
                 trailingAtBottom: true,
                 trailing: Padding(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -4609,6 +4601,26 @@ class _PageHeaderControls extends StatelessWidget {
           onPressed: () => context.go('/impressum'),
           child: Text(AppLocalizations.of(context).legalNotice),
         ),
+      IconButton(
+        tooltip: AppLocalizations.of(context).buyMeACoffee,
+        icon: const Icon(Icons.local_cafe_outlined),
+        onPressed: () async {
+          var opened = false;
+          try {
+            opened = await launchUrl(
+              Uri.parse('https://buymeacoffee.com/curling'),
+              webOnlyWindowName: '_blank',
+            );
+          } catch (_) {
+            opened = false;
+          }
+          if (!opened && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(AppLocalizations.of(context).donationLinkFailed),
+            ));
+          }
+        },
+      ),
       _LanguageMenu(),
       _PageAccountMenu(),
     ],

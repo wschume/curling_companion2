@@ -1309,6 +1309,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to save or delete this entry. Please try again.'**
   String get contentActionFailed;
+
+  /// No description provided for @buyMeACoffee.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy me a coffee'**
+  String get buyMeACoffee;
+
+  /// No description provided for @donationLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open the donation page. Please try again.'**
+  String get donationLinkFailed;
 }
 
 class _AppLocalizationsDelegate

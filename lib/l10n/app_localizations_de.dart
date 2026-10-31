@@ -673,4 +673,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get contentActionFailed =>
       'Der Eintrag konnte nicht gespeichert oder gelöscht werden. Bitte versuche es erneut.';
+
+  @override
+  String get buyMeACoffee => 'Spendiere mir einen Kaffee';
+
+  @override
+  String get donationLinkFailed =>
+      'Die Spendenseite konnte nicht geöffnet werden. Bitte versuche es erneut.';
 }

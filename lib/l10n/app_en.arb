@@ -205,5 +205,7 @@
   "resetClose": "Close",
   "resetCancel": "Cancel",
   "additionalInformationOptional": "Additional information (optional)",
-  "contentActionFailed": "Unable to save or delete this entry. Please try again."
+  "contentActionFailed": "Unable to save or delete this entry. Please try again.",
+  "buyMeACoffee": "Buy me a coffee",
+  "donationLinkFailed": "Unable to open the donation page. Please try again."
 }
