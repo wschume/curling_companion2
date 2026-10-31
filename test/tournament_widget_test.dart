@@ -106,6 +106,44 @@ void main() {
     );
   }
 
+  testWidgets('German tournament filters use translated labels and countries', (
+    tester,
+  ) async {
+    final authService = LocalAuthService();
+    await authService.signIn('owner@example.com', 'password');
+    authService.simulateEmailVerification();
+    await authService.acceptTerms('en');
+    final auth = AuthController(authService);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: auth),
+          Provider<TournamentRepository>(
+            create: (_) => MemoryTournamentRepository(),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('de'),
+          home: const Scaffold(body: TournamentsPage()),
+          supportedLocales: const [Locale('en'), Locale('de')],
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zeitraum'), findsOneWidget);
+    expect(find.text('Ort'), findsWidgets);
+    expect(find.textContaining('Deutschland'), findsWidgets);
+    expect(find.text('Date range'), findsNothing);
+  });
+
   testWidgets('signed-in user can open the create tournament form', (
     tester,
   ) async {

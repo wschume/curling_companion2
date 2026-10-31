@@ -333,3 +333,14 @@ The DE/EN declaration is a draft for operator review. See
 [privacy review notes](docs/privacy/REVIEW.md) and the versioned snapshots in
 `docs/privacy`. Resolve legal bases, retention and provider arrangements and
 approve both translations **before deployment**. No backend changes are needed.
+
+## Password recovery
+
+Select **Forgot password?** on the login form to request a reset link. Firebase
+hosts the page where the user chooses a new password. Configure the sender and
+German/English password-reset templates under Firebase Console → Authentication
+→ Templates → Password reset. Local demo mode sends no email.
+
+Before release, use a dedicated Firebase test account to check email delivery in
+both languages, reset completion, login with the new password, and expired or
+reused links. Unknown addresses receive the same confirmation in the app.
