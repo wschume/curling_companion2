@@ -1093,6 +1093,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to check for an existing tournament. Please try again.'**
   String get tournamentDuplicateCheckFailed;
+
+  /// No description provided for @privacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacyTitle;
+
+  /// No description provided for @privacyRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read privacy declaration'**
+  String get privacyRead;
+
+  /// No description provided for @privacyUnderstood.
+  ///
+  /// In en, this message translates to:
+  /// **'Understood'**
+  String get privacyUnderstood;
+
+  /// No description provided for @privacyNoticeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We use Firebase to provide this website and maintain sign-in sessions. Our privacy declaration explains how data is processed. “Understood” only dismisses this notice; it does not grant consent.'**
+  String get privacyNoticeMessage;
+
+  /// No description provided for @privacyDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft for operator review — not yet approved for publication.'**
+  String get privacyDraft;
+
+  /// No description provided for @privacyVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get privacyVersion;
+
+  /// No description provided for @privacyControllerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Controller and contact'**
+  String get privacyControllerTitle;
+
+  /// No description provided for @privacyControllerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Florin Zepernick, Holbeinstr. 17a, 12203 Berlin, Germany. Email: info@curlingcompanion.de. Telephone: 0152 2563 5091. Please use these details for questions about your personal data or to exercise your rights.'**
+  String get privacyControllerBody;
+
+  /// No description provided for @privacyServicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Website operation and Firebase services'**
+  String get privacyServicesTitle;
+
+  /// No description provided for @privacyServicesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This website uses Google Firebase Hosting to deliver its pages, Firebase Authentication for accounts and sign-in, Cloud Firestore for profiles and community content, Cloud Storage for uploaded marketplace images, and Cloud Functions for image processing and upload management. Requests to these services disclose technical connection information, including IP addresses and request/browser information, to Google. Firebase Hosting and service infrastructure may process logs for operation, security and abuse prevention. Firebase initializes when the website opens; the information notice does not prevent these requests.'**
+  String get privacyServicesBody;
+
+  /// No description provided for @privacyAuthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration and account data'**
+  String get privacyAuthTitle;
+
+  /// No description provided for @privacyAuthBody.
+  ///
+  /// In en, this message translates to:
+  /// **'For registration and sign-in, Firebase Authentication processes your email address, password, user ID and verification status, together with technical information used to authenticate requests and prevent abuse. Your password is transmitted to Firebase for authentication; the app does not save it as browser session data. Profile settings can include a telephone number and language preference. We also store your acceptance of the current terms of use, including the terms version, server timestamp and selected language. Acknowledging this privacy notice is separate from accepting the terms.'**
+  String get privacyAuthBody;
+
+  /// No description provided for @privacyPublicTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Public content and images'**
+  String get privacyPublicTitle;
+
+  /// No description provided for @privacyPublicBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tournament information, marketplace listings, player availability and team/player searches are publicly readable. Depending on what you submit, this includes names, locations, contact information, descriptions and uploaded images. Content records also contain the associated organizer or owner user ID. Marketplace images are accessible using their download links. Do not publish information that you do not want visitors to see. Uploaded image files are stored in Cloud Storage; Cloud Functions receives image data and file information to handle uploads, ownership-related paths and storage quotas.'**
+  String get privacyPublicBody;
+
+  /// No description provided for @privacyBrowserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage in your browser'**
+  String get privacyBrowserTitle;
+
+  /// No description provided for @privacyBrowserBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Firebase Authentication can retain account information such as your email address and user ID, and authentication tokens, in browser storage so that you remain signed in after reloading or returning to the website. Signing out clears the active Firebase sign-in state in this browser. The app stores the acknowledged privacy version under privacy_notice_version using local browser storage, solely to avoid repeating the notice. This value has no user ID and is not sent to our database. It remains until replaced by another acknowledgement or removed through browser settings. A materially updated declaration will show the notice again. If storage is unavailable, dismissal lasts only for the current app session. Clearing browser data may sign you out and will make the notice appear again.'**
+  String get privacyBrowserBody;
+
+  /// No description provided for @privacyHeartbeatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SDK heartbeat and technical information'**
+  String get privacyHeartbeatTitle;
+
+  /// No description provided for @privacyHeartbeatBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The Firebase web SDK can record technical heartbeat information in IndexedDB, including dates and Firebase SDK/platform version information, and attach it to requests to Google. Authentication requests can also include the Firebase app ID. The app ID identifies this Firebase application, not your personal user account. This technical mechanism is distinct from Google Analytics. This app does not integrate Google Analytics or advertising tracking. The heartbeat mechanism is not controlled by the “Understood” button.'**
+  String get privacyHeartbeatBody;
+
+  /// No description provided for @privacyTransfersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipients and international processing'**
+  String get privacyTransfersTitle;
+
+  /// No description provided for @privacyTransfersBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Google processes information as the provider of the Firebase services used by this website. The website operator controls the data submitted to these services. Processing may involve Google companies and subprocessors outside Germany and the European Economic Area, including in the United States. Google describes its processing terms, subprocessors and international transfer safeguards in its Firebase privacy and security documentation. Public content is also accessible to visitors worldwide. Opening external links connects you to the respective external provider.'**
+  String get privacyTransfersBody;
+
+  /// No description provided for @privacyRetentionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Retention and deletion'**
+  String get privacyRetentionTitle;
+
+  /// No description provided for @privacyRetentionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Account data is retained in Firebase Authentication until the account is deleted; Google may retain service logs and backup data for additional service-specific periods. The website allows account deletion only after your tournaments and marketplace listings have been removed. Deleting your account removes its Authentication account; it does not automatically delete profile documents, terms-acceptance records, player/team searches or all previously uploaded files. Removing a content record does not by itself guarantee removal of related stored images. Contact the operator about removal of remaining personal data. Browser data can be removed independently through your browser settings.'**
+  String get privacyRetentionBody;
+
+  /// No description provided for @privacyRightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your rights and complaints'**
+  String get privacyRightsTitle;
+
+  /// No description provided for @privacyRightsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the applicable legal conditions are met, you may request access to, correction or erasure of your personal data, restriction of processing and data portability. You may object to processing based on legitimate interests. Where processing is based on consent, you may withdraw that consent for the future without affecting the lawfulness of earlier processing. The “Understood” action on this website is not such consent. Contact the controller using the details above. You may lodge a complaint with a competent data protection supervisory authority, including the Berlin Commissioner for Data Protection and Freedom of Information.'**
+  String get privacyRightsBody;
 }
 
 class _AppLocalizationsDelegate
