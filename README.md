@@ -313,3 +313,23 @@ When changing the terms, archive a new version and update the version in
 The backend tests check that these versions and the displayed text agree.
 Deploy the web app, Firestore rules, and `uploadMarketplaceImage` together
 using the deployment command in the email verification section.
+
+## Privacy declaration and first-visit information
+
+`/privacy` is public and linked above Impressum in the desktop navigation,
+in the mobile header, and on login, registration and email verification.
+The initial informational notice does not block browsing or Firebase startup.
+**Understood** dismisses it; **Read privacy declaration** opens the page without
+acknowledging it or losing registration form input.
+
+The browser-local `privacy_notice_version` value remembers the acknowledged
+`currentPrivacyVersion` from `lib/privacy.dart`. It is independent of accounts,
+terms acceptance and email verification; it grants no permissions or consent.
+Changed versions/cleared storage show the notice again. Storage failures allow
+session-only dismissal. Tests can inject `PrivacyAcknowledgementStore` through
+the app's optional `privacyStore` constructor parameter.
+
+The DE/EN declaration is a draft for operator review. See
+[privacy review notes](docs/privacy/REVIEW.md) and the versioned snapshots in
+`docs/privacy`. Resolve legal bases, retention and provider arrangements and
+approve both translations **before deployment**. No backend changes are needed.

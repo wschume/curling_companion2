@@ -1,0 +1,3 @@
+interface:
+  display_name: "GitHub Feature Branch"
+  short_description: "Start GitHub feature work on a dedicated branch"

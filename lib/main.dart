@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'firebase_options.dart';
+import 'privacy.dart';
 import 'l10n/app_localizations.dart';
 import 'models/models.dart';
 import 'services/services.dart';
@@ -281,10 +282,13 @@ class CurlingCompanionApp extends StatelessWidget {
     required this.marketplace,
     required this.tournaments,
     required this.players,
-  }) : _router = GoRouter(routes: _routes),
+    this.privacyStore,
+    String? initialLocation,
+  }) : _router = GoRouter(routes: _routes, initialLocation: initialLocation),
        super();
 
   final GoRouter _router;
+  final PrivacyAcknowledgementStore? privacyStore;
   final AuthService auth;
   final MarketplaceRepository marketplace;
   final TournamentRepository tournaments;
@@ -317,6 +321,13 @@ class CurlingCompanionApp extends StatelessWidget {
           pageBuilder: (_, state) => NoTransitionPage<void>(
             key: state.pageKey,
             child: const HomePage(),
+          ),
+        ),
+        GoRoute(
+          path: '/privacy',
+          pageBuilder: (_, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const PrivacyPage(),
           ),
         ),
         GoRoute(
@@ -367,6 +378,9 @@ class CurlingCompanionApp extends StatelessWidget {
     providers: [
       ChangeNotifierProvider(create: (_) => AuthController(auth)),
       ChangeNotifierProvider(create: (_) => LocaleController()),
+      ChangeNotifierProvider(create: (_) => PrivacyNoticeController(
+        privacyStore ?? SharedPreferencesPrivacyStore(),
+      )),
       Provider.value(value: marketplace),
       Provider.value(value: tournaments),
       Provider.value(value: players),
@@ -397,6 +411,24 @@ class _AppView extends StatelessWidget {
     );
     return MaterialApp.router(
       title: 'Curling Companion',
+      builder: (context, child) => AnimatedBuilder(
+        animation: router.routeInformationProvider,
+        builder: (context, _) {
+          final notice = context.watch<PrivacyNoticeController>();
+          final reading =
+              router.routeInformationProvider.value.uri.path == '/privacy';
+          return Column(
+            children: [
+              Expanded(child: child ?? const SizedBox.shrink()),
+              if (notice.visible && !reading)
+                PrivacyNotice(
+                  onRead: () => router.push('/privacy'),
+                  onUnderstood: () => notice.acknowledge(),
+                ),
+            ],
+          );
+        },
+      ),
       routerConfig: router,
       locale: (() {
         final userLanguage = context.watch<AuthController>().language;
@@ -485,9 +517,19 @@ class AppShell extends StatelessWidget {
           if (constraints.maxWidth < 1000) return child;
           final destinations = [
             (l10n.home, Icons.home_outlined, Icons.home, '/'),
-            (l10n.tournaments, Icons.emoji_events_outlined, Icons.emoji_events, '/tournaments'),
+            (
+              l10n.tournaments,
+              Icons.emoji_events_outlined,
+              Icons.emoji_events,
+              '/tournaments',
+            ),
             (l10n.players, Icons.group_outlined, Icons.group, '/players'),
-            (l10n.marketplace, Icons.storefront_outlined, Icons.storefront, '/marketplace'),
+            (
+              l10n.marketplace,
+              Icons.storefront_outlined,
+              Icons.storefront,
+              '/marketplace',
+            ),
           ];
           final selectedIndex = destinations.indexWhere(
             (destination) => destination.$4 == '/'
@@ -502,29 +544,65 @@ class AppShell extends StatelessWidget {
                 minWidth: 104,
                 leading: const Padding(
                   padding: EdgeInsets.only(top: 12, bottom: 20),
-                  child: Icon(Icons.sports_score, color: _curlingBlue, size: 30),
+                  child: Icon(
+                    Icons.sports_score,
+                    color: _curlingBlue,
+                    size: 30,
+                  ),
                 ),
                 trailingAtBottom: true,
                 trailing: Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: Semantics(
-                    selected: path == '/impressum',
-                    child: TextButton(
-                      onPressed: () => context.go('/impressum'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: path == '/impressum'
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurface,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Semantics(
+                        selected: path == '/privacy',
+                        child: TextButton(
+                          onPressed: () => context.go('/privacy'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: path == '/privacy'
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                path == '/privacy'
+                                    ? Icons.privacy_tip
+                                    : Icons.privacy_tip_outlined,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(l10n.privacyTitle),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(path == '/impressum' ? Icons.info : Icons.info_outline),
-                          const SizedBox(height: 8),
-                          Text(l10n.legalNotice),
-                        ],
+                      Semantics(
+                        selected: path == '/impressum',
+                        child: TextButton(
+                          onPressed: () => context.go('/impressum'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: path == '/impressum'
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                path == '/impressum'
+                                    ? Icons.info
+                                    : Icons.info_outline,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(l10n.legalNotice),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
                 destinations: [
@@ -535,7 +613,8 @@ class AppShell extends StatelessWidget {
                       label: Text(destination.$1),
                     ),
                 ],
-                onDestinationSelected: (index) => context.go(destinations[index].$4),
+                onDestinationSelected: (index) =>
+                    context.go(destinations[index].$4),
               ),
               const VerticalDivider(width: 1),
               Expanded(child: child),
@@ -879,6 +958,33 @@ class _TermsAcceptanceCheckbox extends StatelessWidget {
   }
 }
 
+class _PrivacyLink extends StatelessWidget {
+  const _PrivacyLink();
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: () => context.push('/privacy'),
+    child: Text(AppLocalizations.of(context).privacyTitle),
+  );
+}
+
+class PrivacyPage extends StatelessWidget {
+  const PrivacyPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+    title: AppLocalizations.of(context).privacyTitle,
+    intro: '',
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (context.canPop()) BackButton(onPressed: () => context.pop()),
+        const PrivacyDeclarationContent(),
+      ],
+    ),
+  );
+}
+
 class ImpressumPage extends StatelessWidget {
   const ImpressumPage({super.key});
 
@@ -1107,6 +1213,7 @@ class _AuthPageState extends State<AuthPage> {
                         onPressed: () => context.go('/'),
                         child: Text(l10n.home),
                       ),
+                      const _PrivacyLink(),
                       const SizedBox(height: 8),
                       Text(widget.register ? l10n.register : l10n.login),
                       const SizedBox(height: 24),
@@ -1453,6 +1560,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                     onPressed: () => context.go('/login'),
                     child: Text(l10n.login),
                   ),
+                const _PrivacyLink(),
                 TextButton(
                   onPressed: () => context.go('/'),
                   child: Text(l10n.home),
@@ -4046,6 +4154,7 @@ class _PageHeaderControls extends StatelessWidget {
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
       if (pageAction != null) pageAction!,
+      if (MediaQuery.sizeOf(context).width < 1000) const _PrivacyLink(),
       if (MediaQuery.sizeOf(context).width < 1000)
         TextButton(onPressed: () => context.go('/impressum'), child: Text(AppLocalizations.of(context).legalNotice)),
       _LanguageMenu(),
