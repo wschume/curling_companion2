@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:curling_companion/main.dart';
-import 'package:curling_companion/services/services.dart';
+import 'package:curling_companion/services/demo/demo_services.dart';
 
 class RecordingAuth extends LocalAuthService {
   String? email, language;

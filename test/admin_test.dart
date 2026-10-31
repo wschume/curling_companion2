@@ -7,6 +7,7 @@ import 'package:curling_companion/main.dart';
 import 'package:curling_companion/l10n/app_localizations.dart';
 import 'package:curling_companion/models/models.dart';
 import 'package:curling_companion/services/services.dart';
+import 'package:curling_companion/services/demo/demo_services.dart';
 
 class FailingMarketplace extends MemoryMarketplaceRepository {
   bool fail = false;
@@ -106,7 +107,8 @@ void main() {
           title: 'Admin listing',
           description: 'Test',
           price: 10,
-          location: 'Berlin',
+          city: 'Berlin',
+      country: 'Germany',
           sellerContact: 'other@example.com',
           ownerId: 'other',
         ),

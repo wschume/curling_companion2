@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:curling_companion/models/models.dart';
 import 'package:curling_companion/services/services.dart';
+import 'package:curling_companion/services/demo/demo_services.dart';
 import 'package:curling_companion/main.dart';
 
 void main() {
@@ -92,6 +93,8 @@ void main() {
     await firestore.collection('marketplaceListings').doc('listing-1').set({
       'id': 'listing-1',
       'title': 'Test broom',
+      'city': 'Berlin',
+      'country': 'Germany',
       'description': 'A test item',
       'price': 20.0,
       'ownerId': 'user-1',
@@ -99,9 +102,11 @@ void main() {
 
     final listing = await repository.watchListings().first;
     expect(listing.single.title, 'Test broom');
+    expect(listing.single.city, 'Berlin');
+    expect(listing.single.country, 'Germany');
 
     await repository.save(
-      const MarketplaceListing(
+      const MarketplaceListing(city: 'Berlin', country: 'Germany', 
         id: 'listing-2',
         title: 'Shoes',
         description: 'Test',

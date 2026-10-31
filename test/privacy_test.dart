@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:curling_companion/l10n/app_localizations.dart';
 import 'package:curling_companion/main.dart';
 import 'package:curling_companion/privacy.dart';
-import 'package:curling_companion/services/services.dart';
+import 'package:curling_companion/services/demo/demo_services.dart';
 
 class TestPrivacyStore implements PrivacyAcknowledgementStore {
   TestPrivacyStore({

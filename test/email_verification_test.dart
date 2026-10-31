@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:curling_companion/main.dart';
 import 'package:curling_companion/models/models.dart';
 import 'package:curling_companion/services/services.dart';
+import 'package:curling_companion/services/demo/demo_services.dart';
 
 class TestAuthService extends LocalAuthService {
   bool failSend = false;
@@ -233,7 +234,7 @@ void main() {
     await service.register('owner@example.com', 'password');
     final marketplace = MemoryMarketplaceRepository();
     await marketplace.save(
-      const MarketplaceListing(
+      const MarketplaceListing(city: 'Berlin', country: 'Germany', 
         id: 'owned',
         title: 'Owned broom',
         description: 'Test',

@@ -22,6 +22,7 @@ import 'privacy.dart';
 import 'l10n/app_localizations.dart';
 import 'models/models.dart';
 import 'services/services.dart';
+import 'services/demo/demo_services.dart';
 
 const _inkNavy = Color(0xFFF1FAFC);
 const _curlingBlue = Color(0xFF168AA4);
@@ -1648,6 +1649,8 @@ class MarketplacePage extends StatefulWidget {
 
 class _MarketplacePageState extends State<MarketplacePage> {
   String _category = 'all';
+  final _selectedCountries = <String>{};
+  final _selectedCities = <String>{};
 
   @override
   Widget build(BuildContext context) {
@@ -1665,6 +1668,12 @@ class _MarketplacePageState extends State<MarketplacePage> {
             children: [
               _MarketplaceFilters(
                 category: _category,
+                listings: snapshot.data ?? const [],
+                selectedCountries: _selectedCountries,
+                selectedCities: _selectedCities,
+                onCountryToggled: (value) => setState(() { if (!_selectedCountries.add(value)) _selectedCountries.remove(value); }),
+                onCityToggled: (value) => setState(() { if (!_selectedCities.add(value)) _selectedCities.remove(value); }),
+                onClear: () => setState(() { _category = 'all'; _selectedCountries.clear(); _selectedCities.clear(); }),
                 onCategoryChanged: (value) => setState(() => _category = value),
                 action: canEdit
                     ? FilledButton.icon(
@@ -1683,7 +1692,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
   }
 
   List<MarketplaceListing> _filtered(List<MarketplaceListing> items) => items
-      .where((item) => _category == 'all' || item.category == _category)
+      .where((item) => (_category == 'all' || item.category == _category) && (_selectedCountries.isEmpty || _selectedCountries.contains(_marketKey(item.country))) && (_selectedCities.isEmpty || _selectedCities.contains(_marketCityKey(item))))
       .toList();
 
   Widget _listingFeed(
@@ -1875,10 +1884,10 @@ class _ListingFeedContent extends StatelessWidget {
         spacing: 12,
         runSpacing: 6,
         children: [
-          if (listing.location.isNotEmpty)
+          if (listing.city.isNotEmpty)
               _ListingMeta(
                 icon: Icons.location_on_outlined,
-                text: listing.location,
+                text: _marketLocation(context, listing),
               ),
           if (listing.listedAt != null)
             _ListingMeta(
@@ -2062,8 +2071,8 @@ class _MarketplaceListingDetailsDialog extends StatelessWidget {
             const SizedBox(height: 12),
             Text(listing.description),
             const SizedBox(height: 20),
-            if (listing.location.isNotEmpty)
-              Text('${l10n.location}: ${listing.location}'),
+            if (listing.city.isNotEmpty)
+              Text('${l10n.location}: ${_marketLocation(context, listing)}'),
             if (listing.sellerName.isNotEmpty)
               Text('${l10n.seller}: ${listing.sellerName}'),
           ],
@@ -2140,13 +2149,27 @@ class _MarketplaceImageGalleryState extends State<_MarketplaceImageGallery> {
   }
 }
 
+String _marketKey(String value) => value.trim().toLowerCase();
+String _marketCityKey(MarketplaceListing item) => '${_marketKey(item.city)}|${_marketKey(item.country)}';
+String _marketLocation(BuildContext context, MarketplaceListing item) => '${item.city}, ${_countryLabel(context, item.country)}';
+
 class _MarketplaceFilters extends StatelessWidget {
   const _MarketplaceFilters({
     required this.category,
     required this.onCategoryChanged,
+    required this.listings,
+    required this.selectedCountries,
+    required this.selectedCities,
+    required this.onCountryToggled,
+    required this.onCityToggled,
+    required this.onClear,
     this.action,
   });
   final String category;
+  final List<MarketplaceListing> listings;
+  final Set<String> selectedCountries, selectedCities;
+  final ValueChanged<String> onCountryToggled, onCityToggled;
+  final VoidCallback onClear;
   final ValueChanged<String> onCategoryChanged;
   final Widget? action;
   @override
@@ -2190,10 +2213,34 @@ class _MarketplaceFilters extends StatelessWidget {
             onChanged: (value) => onCategoryChanged(value!),
           ),
         ),
+        _locationFilter(context, false),
+        _locationFilter(context, true),
+        TextButton.icon(onPressed: onClear, icon: const Icon(Icons.clear), label: Text(AppLocalizations.of(context).clearFilters)),
         if (action != null) action!,
       ],
     ),
   );
+  Widget _locationFilter(BuildContext context, bool cities) {
+    final selected = cities ? selectedCities : selectedCountries;
+    final labels = <String, String>{};
+    for (final item in listings) {
+      final key = cities ? _marketCityKey(item) : _marketKey(item.country);
+      final otherMatches = cities
+          ? selectedCountries.isEmpty || selectedCountries.contains(_marketKey(item.country))
+          : selectedCities.isEmpty || selectedCities.contains(_marketCityKey(item));
+      if (selected.contains(key) || ((category == 'all' || item.category == category) && otherMatches)) {
+        labels.putIfAbsent(key, () => cities ? _marketLocation(context, item) : _countryLabel(context, item.country));
+      }
+    }
+    for (final key in selected) { labels.putIfAbsent(key, () => key); }
+    final keys = labels.keys.toList()..sort((a, b) => labels[a]!.compareTo(labels[b]!));
+    return _SearchableMultiSelectFilter<String>(
+      label: cities ? AppLocalizations.of(context).city : AppLocalizations.of(context).country,
+      items: keys, selectedItems: selected, itemValue: (key) => key,
+      itemLabel: (key) => labels[key]!, onToggle: cities ? onCityToggled : onCountryToggled,
+    );
+  }
+
 }
 
 class _MarketplaceListingDialog extends StatefulWidget {
@@ -2223,7 +2270,8 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
   late final _currency = TextEditingController(
     text: widget.initial?.currency ?? 'EUR',
   );
-  late final _location = TextEditingController(text: widget.initial?.location);
+  late final _city = TextEditingController(text: widget.initial?.city);
+  late final _country = TextEditingController(text: widget.initial?.country);
   late final _contact = TextEditingController(
     text: widget.initial?.sellerContact ?? widget.email,
   );
@@ -2242,7 +2290,8 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
     _description.dispose();
     _price.dispose();
     _currency.dispose();
-    _location.dispose();
+    _city.dispose();
+    _country.dispose();
     _contact.dispose();
     super.dispose();
   }
@@ -2320,8 +2369,13 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                 ],
               ),
               TextFormField(
-                controller: _location,
-                decoration: InputDecoration(labelText: l10n.location),
+                controller: _city,
+                decoration: InputDecoration(labelText: l10n.city),
+                validator: _required,
+              ),
+              TextFormField(
+                controller: _country,
+                decoration: InputDecoration(labelText: l10n.country),
                 validator: _required,
               ),
               TextFormField(
@@ -2468,7 +2522,8 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
         price: double.parse(_price.text.replaceAll(',', '.')),
         currency: _currency.text.trim().toUpperCase(),
         category: _category,
-        location: _location.text.trim(),
+        city: _city.text.trim(),
+        country: _country.text.trim(),
         sellerName: widget.initial?.sellerName ?? widget.email,
         sellerContact: _contact.text.trim(),
         listedAt: widget.initial?.listedAt ?? DateTime.now(),

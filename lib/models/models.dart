@@ -11,7 +11,8 @@ class MarketplaceListing with MarketplaceListingMappable {
     required this.price,
     this.currency = 'EUR',
     this.category = 'other',
-    this.location = '',
+    required this.city,
+    required this.country,
     this.sellerName = '',
     this.sellerContact = '',
     this.listedAt,
@@ -25,7 +26,8 @@ class MarketplaceListing with MarketplaceListingMappable {
   final double price;
   final String currency;
   final String category;
-  final String location;
+  final String city;
+  final String country;
   final String sellerName;
   final String sellerContact;
   final DateTime? listedAt;
