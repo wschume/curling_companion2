@@ -633,6 +633,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get dateRange => 'Zeitraum';
 
   @override
+  String get roleAlternate => 'alternate';
+
+  @override
   String get roleAny => 'beliebig';
 
   @override

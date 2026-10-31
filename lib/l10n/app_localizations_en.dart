@@ -624,6 +624,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dateRange => 'Date range';
 
   @override
+  String get roleAlternate => 'alternate';
+
+  @override
   String get roleAny => 'any';
 
   @override

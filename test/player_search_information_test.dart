@@ -8,7 +8,7 @@ void main() {
   final legacy = {
     'id': 'search',
     'tournamentId': 'tournament',
-    'role': 'any',
+    'role': 'alternate',
     'contact': 'player@example.com',
     'ownerId': 'owner',
   };
@@ -40,6 +40,14 @@ void main() {
               ...legacy,
               'additionalInformation': information,
             }),
+          );
+          expect(
+            (await repository.watchTeamSearches().first).single.role,
+            'alternate',
+          );
+          expect(
+            (await repository.watchPlayerTeamSearches().first).single.role,
+            'alternate',
           );
           expect(
             (await repository.watchTeamSearches().first)
