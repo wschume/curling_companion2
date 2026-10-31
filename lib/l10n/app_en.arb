@@ -193,5 +193,13 @@
   "privacyRetentionTitle": "Retention and deletion",
   "privacyRetentionBody": "Account data is retained in Firebase Authentication until the account is deleted; Google may retain service logs and backup data for additional service-specific periods. The website allows account deletion only after your tournaments and marketplace listings have been removed. Deleting your account removes its Authentication account; it does not automatically delete profile documents, terms-acceptance records, player/team searches or all previously uploaded files. Removing a content record does not by itself guarantee removal of related stored images. Contact the operator about removal of remaining personal data. Browser data can be removed independently through your browser settings.",
   "privacyRightsTitle": "Your rights and complaints",
-  "privacyRightsBody": "Where the applicable legal conditions are met, you may request access to, correction or erasure of your personal data, restriction of processing and data portability. You may object to processing based on legitimate interests. Where processing is based on consent, you may withdraw that consent for the future without affecting the lawfulness of earlier processing. The “Understood” action on this website is not such consent. Contact the controller using the details above. You may lodge a complaint with a competent data protection supervisory authority, including the Berlin Commissioner for Data Protection and Freedom of Information."
+  "privacyRightsBody": "Where the applicable legal conditions are met, you may request access to, correction or erasure of your personal data, restriction of processing and data portability. You may object to processing based on legitimate interests. Where processing is based on consent, you may withdraw that consent for the future without affecting the lawfulness of earlier processing. The “Understood” action on this website is not such consent. Contact the controller using the details above. You may lodge a complaint with a competent data protection supervisory authority, including the Berlin Commissioner for Data Protection and Freedom of Information.",
+  "forgotPassword": "Forgot password?",
+  "sendResetLink": "Send reset link",
+  "resetSent": "If an account exists for this email address, you’ll receive a password reset link.",
+  "resetNetworkError": "Check your connection and try again.",
+  "resetRateError": "Too many requests. Please try again later.",
+  "resetError": "Could not request a reset link. Please try again.",
+  "resetClose": "Close",
+  "resetCancel": "Cancel"
 }

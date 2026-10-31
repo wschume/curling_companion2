@@ -623,4 +623,29 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get privacyRightsBody =>
       'Where the applicable legal conditions are met, you may request access to, correction or erasure of your personal data, restriction of processing and data portability. You may object to processing based on legitimate interests. Where processing is based on consent, you may withdraw that consent for the future without affecting the lawfulness of earlier processing. The “Understood” action on this website is not such consent. Contact the controller using the details above. You may lodge a complaint with a competent data protection supervisory authority, including the Berlin Commissioner for Data Protection and Freedom of Information.';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get sendResetLink => 'Send reset link';
+
+  @override
+  String get resetSent =>
+      'If an account exists for this email address, you’ll receive a password reset link.';
+
+  @override
+  String get resetNetworkError => 'Check your connection and try again.';
+
+  @override
+  String get resetRateError => 'Too many requests. Please try again later.';
+
+  @override
+  String get resetError => 'Could not request a reset link. Please try again.';
+
+  @override
+  String get resetClose => 'Close';
+
+  @override
+  String get resetCancel => 'Cancel';
 }

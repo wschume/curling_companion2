@@ -632,4 +632,32 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get privacyRightsBody =>
       'Unter den jeweils geltenden gesetzlichen Voraussetzungen kannst du Auskunft, Berichtigung oder Löschung deiner personenbezogenen Daten, Einschränkung der Verarbeitung sowie Datenübertragbarkeit verlangen. Gegen eine auf berechtigte Interessen gestützte Verarbeitung kannst du Widerspruch einlegen. Beruht eine Verarbeitung auf Einwilligung, kannst du diese für die Zukunft widerrufen, ohne dass die Rechtmäßigkeit der bisherigen Verarbeitung berührt wird. Der Button „Verstanden“ auf dieser Webseite erteilt keine solche Einwilligung. Wende dich über die oben genannten Kontaktdaten an den Verantwortlichen. Du kannst dich bei einer zuständigen Datenschutzaufsichtsbehörde beschweren, einschließlich der Berliner Beauftragten für Datenschutz und Informationsfreiheit.';
+
+  @override
+  String get forgotPassword => 'Passwort vergessen?';
+
+  @override
+  String get sendResetLink => 'Link senden';
+
+  @override
+  String get resetSent =>
+      'Falls ein Konto mit dieser E-Mail-Adresse existiert, erhältst du einen Link zum Zurücksetzen des Passworts.';
+
+  @override
+  String get resetNetworkError =>
+      'Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get resetRateError =>
+      'Zu viele Anfragen. Bitte versuche es später erneut.';
+
+  @override
+  String get resetError =>
+      'Der Link konnte nicht angefordert werden. Bitte versuche es erneut.';
+
+  @override
+  String get resetClose => 'Schließen';
+
+  @override
+  String get resetCancel => 'Abbrechen';
 }

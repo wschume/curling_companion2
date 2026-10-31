@@ -170,6 +170,9 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
   // implementation uses the email as a stable placeholder identity.
   String? get userId => service.currentUserId ?? _email;
 
+  Future<void> sendPasswordResetEmail(String email, String languageCode) =>
+      service.sendPasswordResetEmail(email, languageCode);
+
   Future<void> signIn(String email, String password) async {
     await service.signIn(email, password);
     _syncUser();
@@ -1242,6 +1245,17 @@ class _AuthPageState extends State<AuthPage> {
                               value == null || value.length < 6
                               ? l10n.passwordTooShort
                               : null,
+                        ),
+                      if (!widget.register)
+                        TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => showDialog<void>(
+                                  context: context,
+                                  builder: (_) =>
+                                      PasswordResetDialog(email: _email.text),
+                                ),
+                          child: Text(l10n.forgotPassword),
                         ),
                       if (widget.register && !retryTerms)
                         TextFormField(
@@ -4220,5 +4234,103 @@ class _ListState<T> extends StatelessWidget {
     if (snapshot.data!.isEmpty)
       return Text(AppLocalizations.of(context).noItems);
     return Column(children: snapshot.data!.map(itemBuilder).toList());
+  }
+}
+
+class PasswordResetDialog extends StatefulWidget {
+  const PasswordResetDialog({super.key, required this.email});
+  final String email;
+  @override
+  State<PasswordResetDialog> createState() => _PasswordResetDialogState();
+}
+
+class _PasswordResetDialogState extends State<PasswordResetDialog> {
+  final _form = GlobalKey<FormState>();
+  late final _email = TextEditingController(text: widget.email);
+  bool _busy = false, _sent = false;
+  String? _error;
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (_busy || !_form.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await context.read<AuthController>().sendPasswordResetEmail(
+        _email.text.trim(),
+        Localizations.localeOf(context).languageCode,
+      );
+      if (mounted) setState(() => _sent = true);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        if (e.code == 'user-not-found') {
+          _sent = true;
+        } else {
+          _error = e.code == 'invalid-email'
+              ? l10n.invalidEmail
+              : e.code == 'network-request-failed'
+              ? l10n.resetNetworkError
+              : e.code == 'too-many-requests'
+              ? l10n.resetRateError
+              : l10n.resetError;
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = l10n.resetError);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.forgotPassword),
+      content: _sent
+          ? Text(l10n.resetSent)
+          : Form(
+              key: _form,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _email,
+                    autofocus: true,
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !_busy,
+                    decoration: InputDecoration(labelText: l10n.email),
+                    validator: (v) =>
+                        RegExp(
+                          r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                        ).hasMatch((v ?? '').trim())
+                        ? null
+                        : l10n.invalidEmail,
+                    onFieldSubmitted: (_) => _send(),
+                  ),
+                  if (_error != null) Text(_error!),
+                ],
+              ),
+            ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(_sent ? l10n.resetClose : l10n.resetCancel),
+        ),
+        if (!_sent)
+          FilledButton(
+            onPressed: _busy ? null : _send,
+            child: Text(l10n.sendResetLink),
+          ),
+      ],
+    );
   }
 }
