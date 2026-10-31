@@ -22,6 +22,7 @@ import 'privacy.dart';
 import 'l10n/app_localizations.dart';
 import 'models/models.dart';
 import 'services/services.dart';
+import 'services/demo/demo_services.dart';
 
 const _inkNavy = Color(0xFFF1FAFC);
 const _curlingBlue = Color(0xFF168AA4);

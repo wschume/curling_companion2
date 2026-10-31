@@ -1,5 +1,6 @@
 import 'package:curling_companion/models/models.dart';
 import 'package:curling_companion/services/services.dart';
+import 'package:curling_companion/services/demo/demo_services.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 
