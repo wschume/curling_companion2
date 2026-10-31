@@ -204,5 +204,6 @@
   "resetRateError": "Too many requests. Please try again later.",
   "resetError": "Could not request a reset link. Please try again.",
   "resetClose": "Close",
-  "resetCancel": "Cancel"
+  "resetCancel": "Cancel",
+  "additionalInformationOptional": "Additional information (optional)"
 }

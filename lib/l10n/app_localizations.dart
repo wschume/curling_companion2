@@ -1303,6 +1303,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get resetCancel;
+
+  /// No description provided for @additionalInformationOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional information (optional)'**
+  String get additionalInformationOptional;
 }
 
 class _AppLocalizationsDelegate

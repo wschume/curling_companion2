@@ -657,4 +657,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetCancel => 'Cancel';
+
+  @override
+  String get additionalInformationOptional =>
+      'Additional information (optional)';
 }

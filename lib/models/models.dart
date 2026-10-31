@@ -93,6 +93,7 @@ class TeamPlayerSearch with TeamPlayerSearchMappable {
     required this.role,
     required this.contact,
     required this.ownerId,
+    this.additionalInformation = '',
   });
 
   final String id;
@@ -100,6 +101,7 @@ class TeamPlayerSearch with TeamPlayerSearchMappable {
   final String role;
   final String contact;
   final String ownerId;
+  final String additionalInformation;
 }
 
 @MappableClass()
@@ -110,6 +112,7 @@ class PlayerTeamSearch with PlayerTeamSearchMappable {
     required this.role,
     required this.contact,
     required this.ownerId,
+    this.additionalInformation = '',
   });
 
   final String id;
@@ -117,4 +120,5 @@ class PlayerTeamSearch with PlayerTeamSearchMappable {
   final String role;
   final String contact;
   final String ownerId;
+  final String additionalInformation;
 }

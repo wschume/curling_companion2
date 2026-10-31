@@ -3868,6 +3868,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
           tournament: byId[search.tournamentId],
           role: search.role,
           contact: search.contact,
+          additionalInformation: search.additionalInformation,
           isOwner: context.read<AuthController>().userId == search.ownerId,
           onEdit: () => _editTeamSearch(search),
           onDelete: () => _deleteTeamSearch(search),
@@ -3979,6 +3980,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
           tournament: byId[search.tournamentId],
           role: search.role,
           contact: search.contact,
+          additionalInformation: search.additionalInformation,
           isOwner: context.read<AuthController>().userId == search.ownerId,
           onEdit: () => _editSearch(search),
           onDelete: () => _deleteSearch(search),
@@ -4063,6 +4065,7 @@ class _PlayerSearchCard extends StatelessWidget {
     required this.tournament,
     required this.role,
     required this.contact,
+    required this.additionalInformation,
     required this.isOwner,
     required this.onEdit,
     required this.onDelete,
@@ -4071,6 +4074,7 @@ class _PlayerSearchCard extends StatelessWidget {
   final Tournament? tournament;
   final String role;
   final String contact;
+  final String additionalInformation;
   final bool isOwner;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -4129,6 +4133,10 @@ class _PlayerSearchCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (additionalInformation.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(additionalInformation),
+            ],
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
@@ -4183,6 +4191,16 @@ class _TeamSearchDialog extends StatefulWidget {
 class _TeamSearchDialogState extends State<_TeamSearchDialog> {
   String? _tournamentId;
   String _role = 'any';
+  late final _additionalInformation = TextEditingController(
+    text: widget.initial?.additionalInformation,
+  );
+
+  @override
+  void dispose() {
+    _additionalInformation.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -4199,35 +4217,49 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
     ),
     content: SizedBox(
       width: 420,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DropdownButtonFormField<String>(
-            initialValue: _tournamentId,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context).tournament,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _tournamentId,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).tournament,
+              ),
+              items: widget.tournaments
+                  .map(
+                    (t) => DropdownMenuItem(value: t.id, child: Text(t.name)),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _tournamentId = value),
             ),
-            items: widget.tournaments
-                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
-                .toList(),
-            onChanged: (value) => setState(() => _tournamentId = value),
-          ),
-          DropdownButtonFormField<String>(
-            initialValue: _role,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context).role,
+            DropdownButtonFormField<String>(
+              initialValue: _role,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).role,
+              ),
+              items: const ['lead', 'second', 'third', 'skip', 'any']
+                  .map(
+                    (role) => DropdownMenuItem(
+                      value: role,
+                      child: Text(_roleLabel(context, role)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _role = value!),
             ),
-            items: const ['lead', 'second', 'third', 'skip', 'any']
-                .map(
-                  (role) => DropdownMenuItem(
-                    value: role,
-                    child: Text(_roleLabel(context, role)),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) => setState(() => _role = value!),
-          ),
-        ],
+            TextField(
+              controller: _additionalInformation,
+              minLines: 3,
+              maxLines: 6,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(
+                  context,
+                ).additionalInformationOptional,
+              ),
+            ),
+          ],
+        ),
       ),
     ),
     actions: [
@@ -4247,6 +4279,7 @@ class _TeamSearchDialogState extends State<_TeamSearchDialog> {
                   role: _role,
                   contact: widget.contact,
                   ownerId: widget.ownerId,
+                  additionalInformation: _additionalInformation.text.trim(),
                 ),
               ),
         child: Text(
@@ -4277,6 +4310,16 @@ class _PlayerTeamSearchDialog extends StatefulWidget {
 class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
   String? _tournamentId;
   String _role = 'any';
+  late final _additionalInformation = TextEditingController(
+    text: widget.initial?.additionalInformation,
+  );
+
+  @override
+  void dispose() {
+    _additionalInformation.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -4293,35 +4336,49 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
     ),
     content: SizedBox(
       width: 420,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DropdownButtonFormField<String>(
-            initialValue: _tournamentId,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context).tournament,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _tournamentId,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).tournament,
+              ),
+              items: widget.tournaments
+                  .map(
+                    (t) => DropdownMenuItem(value: t.id, child: Text(t.name)),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _tournamentId = value),
             ),
-            items: widget.tournaments
-                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
-                .toList(),
-            onChanged: (value) => setState(() => _tournamentId = value),
-          ),
-          DropdownButtonFormField<String>(
-            initialValue: _role,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context).role,
+            DropdownButtonFormField<String>(
+              initialValue: _role,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).role,
+              ),
+              items: const ['lead', 'second', 'third', 'skip', 'any']
+                  .map(
+                    (role) => DropdownMenuItem(
+                      value: role,
+                      child: Text(_roleLabel(context, role)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _role = value!),
             ),
-            items: const ['lead', 'second', 'third', 'skip', 'any']
-                .map(
-                  (role) => DropdownMenuItem(
-                    value: role,
-                    child: Text(_roleLabel(context, role)),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) => setState(() => _role = value!),
-          ),
-        ],
+            TextField(
+              controller: _additionalInformation,
+              minLines: 3,
+              maxLines: 6,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(
+                  context,
+                ).additionalInformationOptional,
+              ),
+            ),
+          ],
+        ),
       ),
     ),
     actions: [
@@ -4341,6 +4398,7 @@ class _PlayerTeamSearchDialogState extends State<_PlayerTeamSearchDialog> {
                   role: _role,
                   contact: widget.contact,
                   ownerId: widget.ownerId,
+                  additionalInformation: _additionalInformation.text.trim(),
                 ),
               ),
         child: Text(

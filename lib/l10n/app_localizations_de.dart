@@ -669,4 +669,8 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get resetCancel => 'Abbrechen';
+
+  @override
+  String get additionalInformationOptional =>
+      'Zusätzliche Informationen (optional)';
 }

@@ -204,5 +204,6 @@
   "resetRateError": "Zu viele Anfragen. Bitte versuche es später erneut.",
   "resetError": "Der Link konnte nicht angefordert werden. Bitte versuche es erneut.",
   "resetClose": "Schließen",
-  "resetCancel": "Abbrechen"
+  "resetCancel": "Abbrechen",
+  "additionalInformationOptional": "Zusätzliche Informationen (optional)"
 }
