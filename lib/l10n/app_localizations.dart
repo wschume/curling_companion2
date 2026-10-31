@@ -1118,12 +1118,6 @@ abstract class AppLocalizations {
   /// **'We use Firebase to provide this website and maintain sign-in sessions. Our privacy declaration explains how data is processed. “Understood” only dismisses this notice; it does not grant consent.'**
   String get privacyNoticeMessage;
 
-  /// No description provided for @privacyDraft.
-  ///
-  /// In en, this message translates to:
-  /// **'Draft for operator review — not yet approved for publication.'**
-  String get privacyDraft;
-
   /// No description provided for @privacyVersion.
   ///
   /// In en, this message translates to:
@@ -1139,7 +1133,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyControllerBody.
   ///
   /// In en, this message translates to:
-  /// **'Florin Zepernick, Holbeinstr. 17a, 12203 Berlin, Germany. Email: info@curlingcompanion.de. Telephone: 0152 2563 5091. Please use these details for questions about your personal data or to exercise your rights.'**
+  /// **'Florin Zepernick, Holbeinstr. 17a, 12203 Berlin, Germany. Email: webmaster@curlingcompanion.org. Telephone: 0152 2563 5091. Please use these details for questions about your personal data or to exercise your rights.'**
   String get privacyControllerBody;
 
   /// No description provided for @privacyServicesTitle.

@@ -561,10 +561,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wir verwenden Firebase, um diese Webseite bereitzustellen und Anmeldesitzungen aufrechtzuerhalten. Unsere Datenschutzerklärung erläutert die Datenverarbeitung. „Verstanden“ blendet nur diesen Hinweis aus und erteilt keine Einwilligung.';
 
   @override
-  String get privacyDraft =>
-      'Entwurf zur Prüfung durch den Betreiber — noch nicht zur Veröffentlichung freigegeben.';
-
-  @override
   String get privacyVersion => 'Version';
 
   @override
@@ -572,7 +568,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get privacyControllerBody =>
-      'Florin Zepernick, Holbeinstr. 17a, 12203 Berlin, Deutschland. E-Mail: info@curlingcompanion.de. Telefon: 0152 2563 5091. Bitte nutze diese Kontaktdaten bei Fragen zu deinen personenbezogenen Daten oder zur Ausübung deiner Rechte.';
+      'Florin Zepernick, Holbeinstr. 17a, 12203 Berlin, Deutschland. E-Mail: webmaster@curlingcompanion.org. Telefon: 0152 2563 5091. Bitte nutze diese Kontaktdaten bei Fragen zu deinen personenbezogenen Daten oder zur Ausübung deiner Rechte.';
 
   @override
   String get privacyServicesTitle =>

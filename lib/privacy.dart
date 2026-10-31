@@ -153,11 +153,6 @@ class PrivacyDeclarationContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.privacyDraft,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
           Text('${l10n.privacyVersion}: $currentPrivacyVersion'),
           for (final (title, body) in sections) ...[
             const SizedBox(height: 24),
