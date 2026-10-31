@@ -1019,8 +1019,8 @@ class ImpressumPage extends StatelessWidget {
                 Text('${l10n.email}: '),
                 TextButton(
                   onPressed: () =>
-                      launchUrl(Uri.parse('mailto:info@curlingcompanion.de')),
-                  child: const Text('info@curlingcompanion.de'),
+                      launchUrl(Uri.parse('mailto:webmaster@curlingcompanion.org')),
+                  child: const Text('webmaster@curlingcompanion.org'),
                 ),
               ],
             ),

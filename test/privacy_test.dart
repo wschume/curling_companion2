@@ -333,7 +333,9 @@ void main() {
       final snapshot = File(
         'docs/privacy/$currentPrivacyVersion.$language.md',
       ).readAsStringSync();
-      expect(snapshot, contains(arb['privacyDraft']));
+      expect(arb, isNot(contains('privacyDraft')));
+      expect(snapshot, isNot(contains('info@curlingcompanion.de')));
+      expect(snapshot, contains('webmaster@curlingcompanion.org'));
       for (final entry in arb.entries.where(
         (entry) =>
             entry.key.startsWith('privacy') && entry.key.endsWith('Body'),
