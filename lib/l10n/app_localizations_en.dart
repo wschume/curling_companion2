@@ -661,4 +661,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get contentActionFailed =>
       'Unable to save or delete this entry. Please try again.';
+
+  @override
+  String get buyMeACoffee => 'Buy me a coffee';
+
+  @override
+  String get donationLinkFailed =>
+      'Unable to open the donation page. Please try again.';
 }

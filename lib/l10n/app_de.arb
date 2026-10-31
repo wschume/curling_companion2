@@ -205,5 +205,7 @@
   "resetClose": "Schließen",
   "resetCancel": "Abbrechen",
   "additionalInformationOptional": "Zusätzliche Informationen (optional)",
-  "contentActionFailed": "Der Eintrag konnte nicht gespeichert oder gelöscht werden. Bitte versuche es erneut."
+  "contentActionFailed": "Der Eintrag konnte nicht gespeichert oder gelöscht werden. Bitte versuche es erneut.",
+  "buyMeACoffee": "Spendiere mir einen Kaffee",
+  "donationLinkFailed": "Die Spendenseite konnte nicht geöffnet werden. Bitte versuche es erneut."
 }
