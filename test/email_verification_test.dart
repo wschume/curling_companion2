@@ -233,7 +233,7 @@ void main() {
     await service.register('owner@example.com', 'password');
     final marketplace = MemoryMarketplaceRepository();
     await marketplace.save(
-      const MarketplaceListing(
+      const MarketplaceListing(city: 'Berlin', country: 'Germany', 
         id: 'owned',
         title: 'Owned broom',
         description: 'Test',
