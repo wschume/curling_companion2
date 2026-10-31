@@ -641,4 +641,32 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get countryGermany => 'Deutschland';
+
+  @override
+  String get forgotPassword => 'Passwort vergessen?';
+
+  @override
+  String get sendResetLink => 'Link senden';
+
+  @override
+  String get resetSent =>
+      'Falls ein Konto mit dieser E-Mail-Adresse existiert, erhältst du einen Link zum Zurücksetzen des Passworts.';
+
+  @override
+  String get resetNetworkError =>
+      'Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get resetRateError =>
+      'Zu viele Anfragen. Bitte versuche es später erneut.';
+
+  @override
+  String get resetError =>
+      'Der Link konnte nicht angefordert werden. Bitte versuche es erneut.';
+
+  @override
+  String get resetClose => 'Schließen';
+
+  @override
+  String get resetCancel => 'Abbrechen';
 }

@@ -15,6 +15,7 @@ abstract interface class AuthService {
   Future<void> acceptTerms(String languageCode);
   Future<void> sendEmailVerification(String languageCode);
   Future<void> refreshUser();
+  Future<void> sendPasswordResetEmail(String email, String languageCode);
   Future<void> signIn(String email, String password);
   Future<void> register(String email, String password);
   Future<void> updateEmail(String email);
@@ -87,6 +88,12 @@ class FirebaseAuthService implements AuthService {
   }
 
   @override
+  Future<void> sendPasswordResetEmail(String email, String languageCode) async {
+    await _auth.setLanguageCode(languageCode);
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  @override
   Future<void> signIn(String email, String password) =>
       _auth.signInWithEmailAndPassword(email: email, password: password);
 
@@ -141,6 +148,12 @@ class LocalAuthService implements AuthService {
 
   @override
   String? get currentUserId => _email;
+
+  @override
+  Future<void> sendPasswordResetEmail(
+    String email,
+    String languageCode,
+  ) async {}
 
   @override
   Future<void> signIn(String email, String password) async {
