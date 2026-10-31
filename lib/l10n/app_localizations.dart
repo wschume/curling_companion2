@@ -1237,6 +1237,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Where the applicable legal conditions are met, you may request access to, correction or erasure of your personal data, restriction of processing and data portability. You may object to processing based on legitimate interests. Where processing is based on consent, you may withdraw that consent for the future without affecting the lawfulness of earlier processing. The “Understood” action on this website is not such consent. Contact the controller using the details above. You may lodge a complaint with a competent data protection supervisory authority, including the Berlin Commissioner for Data Protection and Freedom of Information.'**
   String get privacyRightsBody;
+
+  /// No description provided for @dateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get dateRange;
+
+  /// No description provided for @roleAny.
+  ///
+  /// In en, this message translates to:
+  /// **'any'**
+  String get roleAny;
+
+  /// No description provided for @countryGermany.
+  ///
+  /// In en, this message translates to:
+  /// **'Germany'**
+  String get countryGermany;
 }
 
 class _AppLocalizationsDelegate
