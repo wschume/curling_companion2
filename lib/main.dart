@@ -82,6 +82,7 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (_identity != service.currentUserId) {
       _identity = service.currentUserId;
+      _watchAdminRole();
       _termsAccepted = false;
       _termsRevision++;
       termsError = false;
@@ -91,6 +92,36 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
     if (_email == null) {
       _language = null;
       _telephone = null;
+    }
+  }
+
+  StreamSubscription<bool>? _adminSubscription;
+  int _adminRevision = 0;
+  bool _isAdmin = false;
+  bool get isAdmin => isSignedIn && _isAdmin;
+  bool canDeleteEntry(String ownerId) =>
+      isSignedIn && (userId == ownerId || isAdmin);
+  bool canEditEntry(String ownerId) =>
+      canManageContent && canDeleteEntry(ownerId);
+
+  void _watchAdminRole() {
+    final revision = ++_adminRevision;
+    _isAdmin = false;
+    _adminSubscription?.cancel();
+    _adminSubscription = null;
+    if (service.currentUserId == null) return;
+    try {
+      _adminSubscription = service.watchAdminRole().listen((value) {
+        if (_disposed || revision != _adminRevision) return;
+        _isAdmin = value;
+        notifyListeners();
+      }, onError: (Object error) {
+        if (_disposed || revision != _adminRevision) return;
+        _isAdmin = false;
+        notifyListeners();
+      });
+    } catch (_) {
+      _isAdmin = false;
     }
   }
 
@@ -253,6 +284,7 @@ class AuthController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
+    _adminSubscription?.cancel();
     _subscription.cancel();
     super.dispose();
   }
@@ -1601,6 +1633,20 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
   }
 }
 
+Future<bool> _runContentAction(BuildContext context, Future<void> Function() action) async {
+  try {
+    await action();
+    return true;
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context).contentActionFailed),
+      ));
+    }
+    return false;
+  }
+}
+
 class MarketplacePage extends StatefulWidget {
   const MarketplacePage({super.key});
 
@@ -1667,8 +1713,8 @@ class _MarketplacePageState extends State<MarketplacePage> {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) => _MarketplaceListingFeedCard(
         listing: listings[index],
-        isOwner:
-            context.read<AuthController>().userId == listings[index].ownerId,
+        canManageEntry:
+            context.watch<AuthController>().canDeleteEntry(listings[index].ownerId),
         onDetails: () => _showDetails(listings[index]),
         onEdit: () => _editListing(listings[index]),
         onDelete: () => _deleteListing(listings[index]),
@@ -1693,12 +1739,12 @@ class _MarketplacePageState extends State<MarketplacePage> {
     );
     if (listing == null || !context.mounted) return;
     if (!_allowContentWrite(context)) return;
-    await context.read<MarketplaceRepository>().save(listing);
+    await _runContentAction(context, () => context.read<MarketplaceRepository>().save(listing));
   }
 
   Future<void> _editListing(MarketplaceListing listing) async {
     if (!_allowContentWrite(context)) return;
-    if (context.read<AuthController>().userId != listing.ownerId) return;
+    if (!context.read<AuthController>().canEditEntry(listing.ownerId)) return;
     final edited = await showDialog<MarketplaceListing>(
       context: context,
       builder: (_) => _MarketplaceListingDialog(
@@ -1709,11 +1755,11 @@ class _MarketplacePageState extends State<MarketplacePage> {
     );
     if (edited == null || !mounted) return;
     if (!_allowContentWrite(context)) return;
-    await context.read<MarketplaceRepository>().save(edited);
+    await _runContentAction(context, () => context.read<MarketplaceRepository>().save(edited));
   }
 
   Future<void> _deleteListing(MarketplaceListing listing) async {
-    if (context.read<AuthController>().userId != listing.ownerId) return;
+    if (!context.read<AuthController>().canDeleteEntry(listing.ownerId)) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -1732,7 +1778,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
       ),
     );
     if (confirmed == true && mounted) {
-      await context.read<MarketplaceRepository>().delete(listing.id);
+      await _runContentAction(context, () => context.read<MarketplaceRepository>().delete(listing.id));
     }
   }
 }
@@ -1740,14 +1786,14 @@ class _MarketplacePageState extends State<MarketplacePage> {
 class _MarketplaceListingFeedCard extends StatelessWidget {
   const _MarketplaceListingFeedCard({
     required this.listing,
-    required this.isOwner,
+    required this.canManageEntry,
     required this.onDetails,
     required this.onEdit,
     required this.onDelete,
   });
 
   final MarketplaceListing listing;
-  final bool isOwner;
+  final bool canManageEntry;
   final VoidCallback onDetails;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -1766,7 +1812,7 @@ class _MarketplaceListingFeedCard extends StatelessWidget {
           );
           final content = _ListingFeedContent(
             listing: listing,
-            isOwner: isOwner,
+            canManageEntry: canManageEntry,
             onDetails: onDetails,
             onEdit: onEdit,
             onDelete: onDelete,
@@ -1794,14 +1840,14 @@ class _MarketplaceListingFeedCard extends StatelessWidget {
 class _ListingFeedContent extends StatelessWidget {
   const _ListingFeedContent({
     required this.listing,
-    required this.isOwner,
+    required this.canManageEntry,
     required this.onDetails,
     required this.onEdit,
     required this.onDelete,
   });
 
   final MarketplaceListing listing;
-  final bool isOwner;
+  final bool canManageEntry;
   final VoidCallback onDetails;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -1865,7 +1911,7 @@ class _ListingFeedContent extends StatelessWidget {
             label: Text(l10n.viewDetails),
           ),
           _MarketplaceContactButton(contact: listing.sellerContact),
-          if (isOwner) ...[
+          if (canManageEntry) ...[
             IconButton(
               tooltip: l10n.editListing,
                 onPressed: context.watch<AuthController>().canManageContent
@@ -2297,7 +2343,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
-                  onPressed: _isUploading ? null : _pickImages,
+                  onPressed: _isUploading || context.read<AuthController>().userId != widget.ownerId ? null : _pickImages,
                   icon: const Icon(Icons.add_photo_alternate_outlined),
                   label: Text(l10n.addImages),
                 ),
@@ -2315,7 +2361,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                     for (var index = 0; index < _imageUrls.length; index++)
                       InputChip(
                         label: Text('${l10n.image} ${index + 1}'),
-                        onDeleted: _isUploading
+                        onDeleted: _isUploading || context.read<AuthController>().userId != widget.ownerId
                             ? null
                             : () => setState(() {
                                   _removedImageUrls.add(
@@ -2327,7 +2373,7 @@ class _MarketplaceListingDialogState extends State<_MarketplaceListingDialog> {
                       InputChip(
                         avatar: const Icon(Icons.image_outlined),
                         label: Text(image.name),
-                        onDeleted: _isUploading
+                        onDeleted: _isUploading || context.read<AuthController>().userId != widget.ownerId
                             ? null
                             : () => setState(() => _newImages.remove(image)),
                       ),
@@ -2698,7 +2744,7 @@ class _TournamentsPageState extends State<TournamentsPage> {
   Future<void> _editTournament(Tournament tournament) async {
     if (!_allowContentWrite(context)) return;
     final auth = context.read<AuthController>();
-    if (auth.userId != tournament.organizerId) return;
+    if (!auth.canEditEntry(tournament.organizerId)) return;
     final edited = await showDialog<Tournament>(
       context: context,
       builder: (_) => _TournamentFormDialog(
@@ -2708,8 +2754,8 @@ class _TournamentsPageState extends State<TournamentsPage> {
       ),
     );
     if (edited != null && mounted && _allowContentWrite(context)) {
-      await context.read<TournamentRepository>().save(edited);
-      if (mounted)
+      final saved = await _runContentAction(context, () => context.read<TournamentRepository>().save(edited));
+      if (saved && mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).tournamentSaved)),
         );
@@ -2718,8 +2764,8 @@ class _TournamentsPageState extends State<TournamentsPage> {
 
   Future<void> _deleteTournament(Tournament tournament) async {
     final auth = context.read<AuthController>();
-    if (auth.userId != tournament.organizerId ||
-        tournament.endDate.isBefore(DateTime.now()))
+    if (!auth.canDeleteEntry(tournament.organizerId) ||
+        (!auth.isAdmin && tournament.endDate.isBefore(DateTime.now())))
       return;
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -3086,7 +3132,7 @@ class _TournamentFeed extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final tournament = tournaments[index];
-        final owner = auth.isSignedIn && auth.userId == tournament.organizerId;
+        final canManageEntry = auth.canDeleteEntry(tournament.organizerId);
         final website = tournament.websiteUrl;
         final location = _locationLabel(
           context,
@@ -3175,13 +3221,13 @@ class _TournamentFeed extends StatelessWidget {
                                 context.go("/players", extra: tournament.id),
                             icon: const Icon(Icons.groups_outlined),
                           ),
-                        if (owner && canEdit)
+                        if (canManageEntry && canEdit)
                           IconButton(
                             tooltip: l10n.editTournament,
                             onPressed: () => onEdit(tournament),
                             icon: const Icon(Icons.edit_outlined),
                           ),
-                        if (owner && onDelete != null)
+                        if (canManageEntry && onDelete != null)
                           IconButton(
                             tooltip: l10n.deleteTournament,
                             onPressed: () => onDelete!(tournament),
@@ -3869,7 +3915,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
           role: search.role,
           contact: search.contact,
           additionalInformation: search.additionalInformation,
-          isOwner: context.read<AuthController>().userId == search.ownerId,
+          canManageEntry: context.watch<AuthController>().canDeleteEntry(search.ownerId),
           onEdit: () => _editTeamSearch(search),
           onDelete: () => _deleteTeamSearch(search),
         );
@@ -3898,12 +3944,12 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
       ),
     );
     if (result != null && mounted && _allowContentWrite(context))
-      await context.read<PlayerRepository>().savePlayerTeamSearch(result);
+      await _runContentAction(context, () => context.read<PlayerRepository>().savePlayerTeamSearch(result));
   }
 
   Future<void> _editTeamSearch(PlayerTeamSearch search) async {
     if (!_allowContentWrite(context)) return;
-    if (context.read<AuthController>().userId != search.ownerId) return;
+    if (!context.read<AuthController>().canEditEntry(search.ownerId)) return;
     final tournaments = await context
         .read<TournamentRepository>()
         .watchTournaments()
@@ -3919,11 +3965,11 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
       ),
     );
     if (result != null && mounted && _allowContentWrite(context))
-      await context.read<PlayerRepository>().savePlayerTeamSearch(result);
+      await _runContentAction(context, () => context.read<PlayerRepository>().savePlayerTeamSearch(result));
   }
 
   Future<void> _deleteTeamSearch(PlayerTeamSearch search) async {
-    if (context.read<AuthController>().userId != search.ownerId) return;
+    if (!context.read<AuthController>().canDeleteEntry(search.ownerId)) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -3944,7 +3990,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
       ),
     );
     if (confirmed == true && mounted)
-      await context.read<PlayerRepository>().deletePlayerTeamSearch(search.id);
+      await _runContentAction(context, () => context.read<PlayerRepository>().deletePlayerTeamSearch(search.id));
   }
 
   Widget _searchTable(
@@ -3981,7 +4027,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
           role: search.role,
           contact: search.contact,
           additionalInformation: search.additionalInformation,
-          isOwner: context.read<AuthController>().userId == search.ownerId,
+          canManageEntry: context.watch<AuthController>().canDeleteEntry(search.ownerId),
           onEdit: () => _editSearch(search),
           onDelete: () => _deleteSearch(search),
         );
@@ -4010,12 +4056,12 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
       ),
     );
     if (result != null && mounted && _allowContentWrite(context))
-      await context.read<PlayerRepository>().saveTeamSearch(result);
+      await _runContentAction(context, () => context.read<PlayerRepository>().saveTeamSearch(result));
   }
 
   Future<void> _editSearch(TeamPlayerSearch search) async {
     if (!_allowContentWrite(context)) return;
-    if (context.read<AuthController>().userId != search.ownerId) return;
+    if (!context.read<AuthController>().canEditEntry(search.ownerId)) return;
     final tournaments = await context
         .read<TournamentRepository>()
         .watchTournaments()
@@ -4031,11 +4077,11 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
       ),
     );
     if (result != null && mounted && _allowContentWrite(context))
-      await context.read<PlayerRepository>().saveTeamSearch(result);
+      await _runContentAction(context, () => context.read<PlayerRepository>().saveTeamSearch(result));
   }
 
   Future<void> _deleteSearch(TeamPlayerSearch search) async {
-    if (context.read<AuthController>().userId != search.ownerId) return;
+    if (!context.read<AuthController>().canDeleteEntry(search.ownerId)) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -4056,7 +4102,7 @@ class _PlayersDirectoryPageState extends State<PlayersDirectoryPage> {
       ),
     );
     if (confirmed == true && mounted)
-      await context.read<PlayerRepository>().deleteTeamSearch(search.id);
+      await _runContentAction(context, () => context.read<PlayerRepository>().deleteTeamSearch(search.id));
   }
 }
 
@@ -4066,7 +4112,7 @@ class _PlayerSearchCard extends StatelessWidget {
     required this.role,
     required this.contact,
     required this.additionalInformation,
-    required this.isOwner,
+    required this.canManageEntry,
     required this.onEdit,
     required this.onDelete,
   });
@@ -4075,7 +4121,7 @@ class _PlayerSearchCard extends StatelessWidget {
   final String role;
   final String contact;
   final String additionalInformation;
-  final bool isOwner;
+  final bool canManageEntry;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -4151,7 +4197,7 @@ class _PlayerSearchCard extends StatelessWidget {
                   avatar: const Icon(Icons.contact_mail_outlined, size: 18),
                   label: SelectableText(contact),
                 ),
-                if (isOwner && context.watch<AuthController>().canManageContent)
+                if (canManageEntry && context.watch<AuthController>().canManageContent)
                   IconButton(
                     tooltip: l10n.editSearch,
                     onPressed: context.watch<AuthController>().canManageContent
@@ -4159,7 +4205,7 @@ class _PlayerSearchCard extends StatelessWidget {
                         : null,
                     icon: const Icon(Icons.edit_outlined),
                   ),
-                if (isOwner)
+                if (canManageEntry)
                   IconButton(
                     tooltip: l10n.deleteSearch,
                     onPressed: onDelete,

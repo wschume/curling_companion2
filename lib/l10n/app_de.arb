@@ -204,5 +204,6 @@
   "resetError": "Der Link konnte nicht angefordert werden. Bitte versuche es erneut.",
   "resetClose": "Schließen",
   "resetCancel": "Abbrechen",
-  "additionalInformationOptional": "Zusätzliche Informationen (optional)"
+  "additionalInformationOptional": "Zusätzliche Informationen (optional)",
+  "contentActionFailed": "Der Eintrag konnte nicht gespeichert oder gelöscht werden. Bitte versuche es erneut."
 }

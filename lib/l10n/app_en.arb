@@ -204,5 +204,6 @@
   "resetError": "Could not request a reset link. Please try again.",
   "resetClose": "Close",
   "resetCancel": "Cancel",
-  "additionalInformationOptional": "Additional information (optional)"
+  "additionalInformationOptional": "Additional information (optional)",
+  "contentActionFailed": "Unable to save or delete this entry. Please try again."
 }

@@ -4,11 +4,12 @@ const {join} = require('node:path');
 const {currentTermsVersion} = require('./authorization');
 const {initializeTestEnvironment, assertSucceeds, assertFails} = require('@firebase/rules-unit-testing');
 const {doc, setDoc, updateDoc, deleteDoc, getDoc, Timestamp, serverTimestamp} = require('firebase/firestore');
+const [emulatorHost, emulatorPort] = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':');
 let env;
 before(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-curling-verification',
-    firestore: {host: '127.0.0.1', port: 8080, rules: readFileSync(join(__dirname, '../firestore.rules'), 'utf8')},
+    firestore: {host: emulatorHost, port: Number(emulatorPort), rules: readFileSync(join(__dirname, '../firestore.rules'), 'utf8')},
   });
 });
 after(async () => { if (env) await env.cleanup(); });
@@ -97,3 +98,40 @@ test('tournament deletion accepts app ISO dates and enforces ownership', async (
   await assertFails(deleteDoc(doc(other, path)));
   await assertSucceeds(deleteDoc(doc(owner, path)));
 });
+
+for (const [collection, ownerField] of Object.entries(collections)) {
+  test(`${collection}: protected admin role permits moderation and preserves owner`, async () => {
+    const uid = `moderator-${collection}`;
+    const db = env.authenticatedContext(uid, {email_verified: true}).firestore();
+    const unverified = env.authenticatedContext(uid, {email_verified: false}).firestore();
+    const other = env.authenticatedContext(`other-${uid}`, {email_verified: true}).firestore();
+    const path = `${collection}/admin-test`;
+    await env.withSecurityRulesDisabled(async context => {
+      const seed = context.firestore();
+      await setDoc(doc(seed, path), {[ownerField]: 'original-owner', title: 'Original'});
+      await setDoc(doc(seed, `users/${uid}/termsAcceptances/${currentTermsVersion}`), {accepted: true, version: currentTermsVersion});
+    });
+    await assertSucceeds(setDoc(doc(db, `users/${uid}`), {role: 'admin'}));
+    await assertFails(updateDoc(doc(db, path), {title: 'Denied'}));
+    await assertFails(setDoc(doc(db, `adminRoles/${uid}`), {role: 'admin'}));
+    await env.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), `adminRoles/${uid}`), {role: 'admin'});
+    });
+    await assertSucceeds(getDoc(doc(db, `adminRoles/${uid}`)));
+    await assertFails(getDoc(doc(other, `adminRoles/${uid}`)));
+    await assertFails(deleteDoc(doc(db, `adminRoles/${uid}`)));
+    await assertFails(updateDoc(doc(unverified, path), {title: 'Denied'}));
+    await assertSucceeds(updateDoc(doc(db, path), {title: 'Moderated'}));
+    await assertFails(updateDoc(doc(db, path), {[ownerField]: uid}));
+    await assertFails(setDoc(doc(db, `${collection}/impersonation`), {[ownerField]: 'someone-else'}));
+    await env.withSecurityRulesDisabled(async context => {
+      await deleteDoc(doc(context.firestore(), `adminRoles/${uid}`));
+    });
+    await assertFails(updateDoc(doc(db, path), {title: 'Revoked'}));
+    await assertFails(deleteDoc(doc(db, path)));
+    await env.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), `adminRoles/${uid}`), {role: 'admin'});
+    });
+    await assertSucceeds(deleteDoc(doc(unverified, path)));
+  });
+}
